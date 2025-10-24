@@ -1,0 +1,5 @@
+{
+  "name": "Resume Architect",
+  "description": "An application that allows users to upload career-related documents, use AI to extract structured information from them into a central 'Master Profile,' and then generate tailored resumes for specific job descriptions.",
+  "requestFramePermissions": []
+}
