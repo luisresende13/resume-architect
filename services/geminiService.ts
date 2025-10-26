@@ -138,15 +138,20 @@ export const generateSection = async (
     prompt = `
       You are an expert career profiler. Your primary task is to perform a comprehensive and exhaustive extraction of information from the provided documents to find items that have not yet been extracted.
 
-      You have already extracted the following items for the "${section}" section:
+      You have already extracted the following items for the "${section}" resume section:
       ---
       ${existingItemsString}
       ---
-      Now, your task is to find and extract all additional items for the "${section}" section that are not present in the list above.
+      Now, your task is to find and extract all additional items for the "${section}" resume section that are not present in the list above.
 
       It is crucial that you capture all details associated with each new item you find, even if they seem minor, extraneous, or irrelevant. Do not filter, summarize, or judge the relevance of the information. Your responsibility is solely to extract and preserve the data as completely as possible. The task of filtering and determining relevance will be handled by a separate process later.
 
       Be exhaustive in finding new items and preserve every detail associated with them.
+
+      Be careful not to extract duplicated or repeated information.
+
+      Be careful not to find mix instances belonging to different sections.
+
       ${customInstructions ? `Follow these custom instructions: ${customInstructions}` : ''}
 
       Here is the content:
@@ -158,9 +163,14 @@ export const generateSection = async (
     prompt = `
       You are an expert career profiler. Your primary task is to perform a comprehensive and exhaustive extraction of information from the provided documents.
 
-      Your goal is to identify and extract every piece of information related to the "${section}" section. It is crucial that you capture all details associated with each item, even if they seem minor, extraneous, or irrelevant. Do not filter, summarize, or judge the relevance of the information you find. Your responsibility is solely to extract and preserve the data as completely as possible. The task of filtering and determining relevance will be handled by a separate process later.
+      Your goal is to identify and extract every piece of information related to the "${section}" resume section. It is crucial that you capture all details associated with each item, even if they seem minor, extraneous, or irrelevant. Do not filter, summarize, or judge the relevance of the information you find. Your responsibility is solely to extract and preserve the data as completely as possible. The task of filtering and determining relevance will be handled by a separate process later.
 
-      Extract all instances of "${section}". Be exhaustive and preserve every detail.
+      Extract all instances of resume's "${section}". Be exhaustive and preserve every detail.
+
+      Be careful not to extract duplicated or repeated information.
+
+      Be careful not to find mix instances belonging to different sections.
+
       ${customInstructions ? `Follow these custom instructions: ${customInstructions}` : ''}
 
       Here is the content:
@@ -203,8 +213,9 @@ export const generateSection = async (
     throw error;
   }
 };
-
-export async function* generateTailoredResumeStream(profile: MasterProfile, jobDescription: string, signal: AbortSignal): AsyncGenerator<any> {
+export async function* generateTailoredResumeStream(profile: MasterProfile, jobDescription: string, customInstructions: string, signal: AbortSignal): AsyncGenerator<any> {
+  // Note: The 'profile' parameter may be a partial MasterProfile object,
+  // containing only the sections selected by the user in the UI.
   // Use structuredClone to avoid modifying the original profile object
   const profileForPrompt = structuredClone(profile);
   
@@ -214,17 +225,32 @@ export async function* generateTailoredResumeStream(profile: MasterProfile, jobD
   
   const profileString = JSON.stringify(profileForPrompt, null, 2);
 
+    // # Prompt v1:
+    // ```markdown
+    // You are an expert resume writer. I will provide you with my personal contact information, a master profile containing all of my professional history, and a target job description.
+    
+    // Your task is to create a tailored, professional one-page resume. Follow this structure precisely:
+    // 1.  **Header:** Start with my name, followed by my contact details (email, phone, LinkedIn, portfolio, GitHub) in a clean, single line or two.
+    // 2.  **Professional Summary:** Write a compelling, tailored professional summary (2-4 sentences) that highlights my key qualifications for this specific role, based on my master profile and the job description.
+    // 3.  **Content Sections:** From the master profile, select only the most relevant information that aligns with the job description. Create sections like "Summary", "Skills", "Professional Experience", "Projects", "Education", etc., as needed.
+    // 4.  **Formatting:** Rephrase bullet points to use action verbs and highlight achievements that match the company's needs. The output must be clean, well-formatted resume text in Markdown format.
+
+    // Do not include any preamble or explanation, just the resume content itself.
+    // ```
+
   const prompt = `
     You are an expert resume writer. I will provide you with my personal contact information, a master profile containing all of my professional history, and a target job description.
     
-    Your task is to create a tailored, professional one-page resume. Follow this structure precisely:
-    1.  **Header:** Start with my name, followed by my contact details (email, phone, LinkedIn, portfolio, GitHub) in a clean, single line or two.
-    2.  **Professional Summary:** Write a compelling, tailored professional summary (2-4 sentences) that highlights my key qualifications for this specific role, based on my master profile and the job description.
-    3.  **Content Sections:** From the master profile, select only the most relevant information that aligns with the job description. Create sections like "Professional Experience", "Skills", "Projects", "Education", etc., as needed.
-    4.  **Formatting:** Rephrase bullet points to use action verbs and highlight achievements that match the company's needs. The output must be clean, well-formatted resume text in Markdown format.
+    Your task is to create a tailored, professional resume.
+
+    Use the master profile as your sole source of truth for all information about my background, skills, and experience.
     
+    Use the job description to identify and highlight the most relevant information from my master profile.
+    Only include information that is relevant to the target job description.
+
     Do not include any preamble or explanation, just the resume content itself.
 
+    ${customInstructions ? `**Custom Instructions:**\n---\n${customInstructions}\n---\n\n` : ''}
     **Personal Information:**
     Name: ${personalInfo.name}
     Email: ${personalInfo.email}
@@ -265,6 +291,129 @@ export async function* generateTailoredResumeStream(profile: MasterProfile, jobD
   } catch (error) {
     console.error("Error generating tailored resume:", error);
     // Re-throw the error to be handled by the UI component
+    throw error;
+  }
+};
+
+export async function* refineResumeStream(profile: MasterProfile, markdownContent: string, instruction: string, signal: AbortSignal): AsyncGenerator<any> {
+  // Note: The 'profile' parameter may be a partial MasterProfile object,
+  // containing only the sections selected by the user in the UI.
+  const profileForPrompt = structuredClone(profile);
+  
+  const personalInfo = profileForPrompt.personal_info;
+  delete (profileForPrompt as any).personal_info;
+  
+  const profileString = JSON.stringify(profileForPrompt, null, 2);
+  
+  const prompt = `
+    You are an expert resume editor. I will provide you with a resume in Markdown format, the master profile it was generated from, and an instruction for how to refine it.
+
+    Your task is to return a new version of the resume that incorporates the instruction, using the master profile as a source of truth and for any additional information required.
+    
+    Do not include any preamble or explanation, just the updated resume content itself.
+
+    **Master Profile:**
+    ---
+    ${profileString}
+    ---
+
+    **Original Resume:**
+    ---
+    ${markdownContent}
+    ---
+
+    **Instruction:**
+    ---
+    ${instruction}
+    ---
+  `;
+
+  try {
+    const stream = await ai.models.generateContentStream({
+      model: 'gemini-2.5-pro',
+      contents: prompt,
+      config: {
+        thinkingConfig: {
+          includeThoughts: true,
+        }
+      }
+    });
+
+    for await (const chunk of stream) {
+      if (signal.aborted) {
+        throw new DOMException("Aborted by user", "AbortError");
+      }
+      yield chunk;
+    }
+  } catch (error) {
+    console.error("Error refining resume:", error);
+    throw error;
+  }
+};
+
+export const generateFullProfile = async (documents: Document[]): Promise<MasterProfile> => {
+  const documentContents = await Promise.all(
+    documents.map(async (doc) => {
+      const { data, error } = await supabase.storage.from('documents').download(doc.storage_path);
+      if (error) throw error;
+      const content = await data.text();
+      return `Document: ${doc.name}\n\n${content}`;
+    })
+  );
+
+  const combinedContent = documentContents.join('\n\n---\n\n');
+
+  const prompt = `
+    You are an expert career profiler. Your task is to perform a comprehensive and exhaustive extraction of information from the provided documents to create a complete Master Profile.
+
+    Extract all information for the following sections: personal_info, experience, skills, projects, education, certifications, awards, and languages.
+
+    It is crucial that you capture all details associated with each item, even if they seem minor. Do not filter or summarize. Your responsibility is to extract and preserve the data as completely as possible.
+
+    Here is the content:
+    ---
+    ${combinedContent}
+    ---
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-pro',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            personal_info: getResponseSchemaForSection('personal_info'),
+            experience: getResponseSchemaForSection('experience'),
+            skills: getResponseSchemaForSection('skills'),
+            projects: getResponseSchemaForSection('projects'),
+            education: getResponseSchemaForSection('education'),
+            certifications: getResponseSchemaForSection('certifications'),
+            awards: getResponseSchemaForSection('awards'),
+            languages: getResponseSchemaForSection('languages'),
+          },
+        },
+      },
+    });
+
+    let jsonText = response.text.trim();
+    if (jsonText.startsWith('```json')) {
+      jsonText = jsonText.substring(7);
+      if (jsonText.endsWith('```')) {
+        jsonText = jsonText.slice(0, -3);
+      }
+    } else if (jsonText.startsWith('```')) {
+      jsonText = jsonText.substring(3);
+      if (jsonText.endsWith('```')) {
+        jsonText = jsonText.slice(0, -3);
+      }
+    }
+
+    return JSON.parse(jsonText);
+  } catch (error) {
+    console.error("Error generating full profile:", error);
     throw error;
   }
 };

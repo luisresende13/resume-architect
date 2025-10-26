@@ -1,16 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import * as api from '../services/apiService';
 import { generateSection } from '../services/geminiService';
 import { notifySuccess, notifyError } from '../services/notificationService';
 import { Document, MasterProfile, MasterProfileSection, GeneratedItem, GenerationMode, Experience, Skill, Project, Education, Certification, Award, Language, PersonalInfo } from '../types';
-import { Modal } from '../components/Modal';
-import { OnboardingModal } from '../components/OnboardingModal';
-import { DocumentViewerModal } from '../components/DocumentViewerModal';
+import { Modal } from './Modal';
+import { MasterProfileSkeleton } from './SkeletonLoader';
 
 // Icons
-const FileIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"></path></svg>
-);
 const TrashIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path></svg>
 );
@@ -24,10 +20,12 @@ const EditIcon: React.FC<{ className?: string }> = ({ className }) => (
 const PersonalInfoSection: React.FC<{
   info: PersonalInfo;
   onSave: (newInfo: PersonalInfo) => void;
-  onGenerateClick: () => void;
-}> = ({ info, onSave, onGenerateClick }) => {
+  onGenerate: (selectedDocs: Document[], mode: GenerationMode, instructions: string) => Promise<void>;
+  documents: Document[];
+}> = ({ info, onSave, onGenerate, documents }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(info);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     setFormData(info);
@@ -40,6 +38,11 @@ const PersonalInfoSection: React.FC<{
   const handleSave = () => {
     onSave(formData);
     setIsEditing(false);
+  };
+
+  const handleGenerateSubmit = async (selectedDocs: Document[], mode: GenerationMode, instructions: string) => {
+    await onGenerate(selectedDocs, mode, instructions);
+    setIsGenerating(false);
   };
 
   const inputClass = "w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition";
@@ -55,11 +58,19 @@ const PersonalInfoSection: React.FC<{
               <span>Edit</span>
             </button>
           )}
-          <button onClick={onGenerateClick} className="px-3 py-1 text-sm font-medium text-white bg-sky-600 rounded-md hover:bg-sky-500 transition">Generate</button>
+          <button onClick={() => setIsGenerating(true)} className="px-3 py-1 text-sm font-medium text-white bg-sky-600 rounded-md hover:bg-sky-500 transition">Generate</button>
         </div>
       </div>
+      {isGenerating && (
+        <GenerationForm
+          documents={documents}
+          section="personal_info"
+          onSubmit={handleGenerateSubmit}
+          onCancel={() => setIsGenerating(false)}
+        />
+      )}
       {isEditing ? (
-        <div className="space-y-3">
+        <div className="space-y-3 mt-4">
             <input name="name" value={formData.name} onChange={handleChange} placeholder="Name" className={inputClass} />
             <input name="email" value={formData.email} onChange={handleChange} placeholder="Email" className={inputClass} />
             <input name="phone" value={formData.phone} onChange={handleChange} placeholder="Phone" className={inputClass} />
@@ -72,31 +83,21 @@ const PersonalInfoSection: React.FC<{
             </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm text-slate-300">
-            <div><strong>Name:</strong> {info.name}</div>
-            <div><strong>Email:</strong> {info.email}</div>
-            <div><strong>Phone:</strong> {info.phone}</div>
-            <div><strong>LinkedIn:</strong> {info.linkedin}</div>
-            <div><strong>Portfolio:</strong> {info.portfolio}</div>
-            <div><strong>GitHub:</strong> {info.github}</div>
-        </div>
+        !isGenerating && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm text-slate-300 mt-4">
+                <div><strong>Name:</strong> {info.name}</div>
+                <div><strong>Email:</strong> {info.email}</div>
+                <div><strong>Phone:</strong> {info.phone}</div>
+                <div><strong>LinkedIn:</strong> {info.linkedin}</div>
+                <div><strong>Portfolio:</strong> {info.portfolio}</div>
+                <div><strong>GitHub:</strong> {info.github}</div>
+            </div>
+        )
       )}
     </div>
   );
 };
 
-// Document Card Component
-const DocumentCard: React.FC<{ document: Document; onDelete: (id: string) => void; onView: (doc: Document) => void }> = ({ document, onDelete, onView }) => (
-    <div onClick={() => onView(document)} className="flex items-center bg-slate-700 p-3 rounded-md cursor-pointer hover:bg-slate-600/50 transition">
-        <FileIcon className="h-6 w-6 text-sky-400 mr-3 flex-shrink-0" />
-        <span className="text-sm text-slate-200 truncate flex-grow" title={document.name}>{document.name}</span>
-        <button onClick={(e) => { e.stopPropagation(); onDelete(document.id); }} className="text-slate-400 hover:text-red-500 ml-3 flex-shrink-0 p-1 rounded-full hover:bg-slate-600 transition">
-            <TrashIcon className="h-5 w-5" />
-        </button>
-    </div>
-);
-
-// Profile Item Card Component
 const ProfileItemCard: React.FC<{ item: GeneratedItem; section: MasterProfileSection; onEdit: (item: GeneratedItem) => void; onDelete: (item: GeneratedItem) => void; }> = ({ item, section, onEdit, onDelete }) => {
     const renderContent = () => {
         switch (section) {
@@ -172,7 +173,6 @@ const ProfileItemCard: React.FC<{ item: GeneratedItem; section: MasterProfileSec
     );
 };
 
-// Profile Item Form
 const ProfileItemForm: React.FC<{ item: GeneratedItem; section: MasterProfileSection; onSave: (item: GeneratedItem) => void; onCancel: () => void; }> = ({ item, section, onSave, onCancel }) => {
     const [formData, setFormData] = useState(item);
 
@@ -236,7 +236,6 @@ const ProfileItemForm: React.FC<{ item: GeneratedItem; section: MasterProfileSec
     );
 }
 
-// Confirmation Modal Component
 const ConfirmationModal: React.FC<{ isOpen: boolean; onConfirm: () => void; onCancel: () => void; title: string; children: React.ReactNode; }> = ({ isOpen, onConfirm, onCancel, title, children }) => (
     <Modal isOpen={isOpen} onClose={onCancel} title={title}>
         <div>
@@ -249,40 +248,22 @@ const ConfirmationModal: React.FC<{ isOpen: boolean; onConfirm: () => void; onCa
     </Modal>
 );
 
-// Generation Modal Component
-interface GenerationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (selectedDocs: Document[], mode: GenerationMode, instructions: string) => Promise<void>;
-  section: MasterProfileSection | null;
-  documents: Document[];
-}
-const GenerationModal: React.FC<GenerationModalProps> = ({ isOpen, onClose, onSubmit, section, documents }) => {
-    const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
+const GenerationForm: React.FC<{
+    documents: Document[];
+    section: MasterProfileSection;
+    onSubmit: (selectedDocs: Document[], mode: GenerationMode, instructions: string) => Promise<void>;
+    onCancel: () => void;
+}> = ({ documents, section, onSubmit, onCancel }) => {
+    const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set(documents.map(d => d.id)));
     const [mode, setMode] = useState<GenerationMode>('complement');
     const [instructions, setInstructions] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    useEffect(() => {
-        if (isOpen) {
-            // When the modal opens, pre-select all available documents.
-            setSelectedDocIds(new Set(documents.map(doc => doc.id)));
-        } else {
-            // Reset state when the modal is closed to ensure a clean slate next time.
-            setSelectedDocIds(new Set());
-            setMode('complement');
-            setInstructions('');
-        }
-    }, [isOpen, documents]);
-
     const handleDocToggle = (id: string) => {
         setSelectedDocIds(prev => {
             const newSet = new Set(prev);
-            if (newSet.has(id)) {
-                newSet.delete(id);
-            } else {
-                newSet.add(id);
-            }
+            if (newSet.has(id)) newSet.delete(id);
+            else newSet.add(id);
             return newSet;
         });
     };
@@ -292,76 +273,43 @@ const GenerationModal: React.FC<GenerationModalProps> = ({ isOpen, onClose, onSu
         try {
             const selectedDocs = documents.filter(doc => selectedDocIds.has(doc.id));
             await onSubmit(selectedDocs, mode, instructions);
-            onClose();
-        } catch (error) {
-            notifyError("Failed to generate section. Please try again.");
         } finally {
             setIsLoading(false);
         }
     };
 
-    if (!section) return null;
-    const capitalizedSection = section.charAt(0).toUpperCase() + section.slice(1);
-
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Generate ${capitalizedSection}`}>
-            <div className="space-y-6">
-                <div>
-                    <h3 className="font-semibold text-lg text-white mb-2">1. Select source documents to use</h3>
-                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                        {documents.map(doc => (
-                            <label key={doc.id} className="flex items-center space-x-3 p-2 bg-slate-700 rounded-md cursor-pointer hover:bg-slate-600">
-                                <input type="checkbox" checked={selectedDocIds.has(doc.id)} onChange={() => handleDocToggle(doc.id)} className="h-4 w-4 rounded bg-slate-800 border-slate-600 text-sky-500 focus:ring-sky-500" />
-                                <span className="text-slate-200">{doc.name}</span>
-                            </label>
-                        ))}
-                    </div>
-                </div>
-
-                <div>
-                    <h3 className="font-semibold text-lg text-white mb-2">2. Choose generation mode</h3>
-                    <div className="space-y-2">
-                        <label className="flex items-center p-3 bg-slate-700 rounded-md cursor-pointer hover:bg-slate-600">
-                            <input type="radio" name="mode" value="replace" checked={mode === 'replace'} onChange={() => setMode('replace')} className="h-4 w-4 text-sky-500 border-slate-600 focus:ring-sky-500"/>
-                            <div className="ml-3">
-                                <p className="font-medium text-slate-100">Replace Section</p>
-                                <p className="text-sm text-slate-400">Replace the entire section with new results.</p>
-                            </div>
+        <div className="bg-slate-700/50 p-4 rounded-md mt-4 space-y-4">
+            <div>
+                <h4 className="font-semibold text-white mb-2">1. Select source documents</h4>
+                <div className="space-y-2 max-h-32 overflow-y-auto pr-2">
+                    {documents.map(doc => (
+                        <label key={doc.id} className="flex items-center space-x-3 p-2 bg-slate-700 rounded-md cursor-pointer hover:bg-slate-600">
+                            <input type="checkbox" checked={selectedDocIds.has(doc.id)} onChange={() => handleDocToggle(doc.id)} className="h-4 w-4 rounded bg-slate-800 border-slate-600 text-sky-500 focus:ring-sky-500" />
+                            <span className="text-slate-200 text-sm">{doc.name}</span>
                         </label>
-                        <label className="flex items-center p-3 bg-slate-700 rounded-md cursor-pointer hover:bg-slate-600">
-                            <input type="radio" name="mode" value="complement" checked={mode === 'complement'} onChange={() => setMode('complement')} className="h-4 w-4 text-sky-500 border-slate-600 focus:ring-sky-500"/>
-                            <div className="ml-3">
-                                <p className="font-medium text-slate-100">Find More</p>
-                                <p className="text-sm text-slate-400">Add new items found in the documents to the existing list.</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div>
-                    <h3 className="font-semibold text-lg text-white mb-2">3. (Optional) Add custom instructions</h3>
-                    <textarea value={instructions} onChange={e => setInstructions(e.target.value)} rows={3} placeholder="e.g., Focus on my leadership roles and quantifiable achievements." className="w-full bg-slate-900 border border-slate-600 rounded-md p-2 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"></textarea>
-                </div>
-                
-                <div className="flex justify-end space-x-3 pt-4">
-                    <button onClick={onClose} className="px-4 py-2 rounded-md text-slate-200 bg-slate-600 hover:bg-slate-500 transition">Cancel</button>
-                    <button onClick={handleSubmit} disabled={selectedDocIds.size === 0 || isLoading} className="px-4 py-2 rounded-md text-white bg-sky-600 hover:bg-sky-500 transition disabled:bg-slate-500 disabled:cursor-not-allowed flex items-center">
-                        {isLoading && <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
-                        {isLoading ? 'Generating...' : 'Start Generation'}
-                    </button>
+                    ))}
                 </div>
             </div>
-        </Modal>
+            <div>
+                <h4 className="font-semibold text-white mb-2">2. (Optional) Add custom instructions</h4>
+                <textarea value={instructions} onChange={e => setInstructions(e.target.value)} rows={2} placeholder="e.g., Focus on my leadership roles..." className="w-full bg-slate-900 border border-slate-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"></textarea>
+            </div>
+            <div className="flex justify-end space-x-3 pt-2">
+                <button onClick={onCancel} className="px-4 py-2 text-sm rounded-md text-slate-200 bg-slate-600 hover:bg-slate-500 transition">Cancel</button>
+                <button onClick={handleSubmit} disabled={selectedDocIds.size === 0 || isLoading} className="px-4 py-2 text-sm rounded-md text-white bg-sky-600 hover:bg-sky-500 transition disabled:bg-slate-500 disabled:cursor-not-allowed flex items-center">
+                    {isLoading ? 'Generating...' : 'Generate'}
+                </button>
+            </div>
+        </div>
     );
 };
 
-
-// Master Profile Section Component
 interface ProfileSectionProps {
   title: string;
   sectionKey: MasterProfileSection;
   items: GeneratedItem[];
-  onGenerateClick: (section: MasterProfileSection) => void;
+  onGenerate: (selectedDocs: Document[], mode: GenerationMode, instructions: string) => Promise<void>;
   onAddItem: (section: MasterProfileSection) => void;
   onEditItem: (item: GeneratedItem, section: MasterProfileSection) => void;
   onDeleteItem: (item: GeneratedItem, section: MasterProfileSection) => void;
@@ -369,12 +317,25 @@ interface ProfileSectionProps {
   onCancelEdit: () => void;
   editingItem: { item: GeneratedItem; section: MasterProfileSection } | null;
   onClearSection: (section: MasterProfileSection) => void;
+  documents: Document[];
 }
 
-const ProfileSection: React.FC<ProfileSectionProps> = ({ title, sectionKey, items, onGenerateClick, onAddItem, onEditItem, onDeleteItem, onSaveItem, onCancelEdit, editingItem, onClearSection }) => {
+const ProfileSection: React.FC<ProfileSectionProps> = ({ title, sectionKey, items, onGenerate, onAddItem, onEditItem, onDeleteItem, onSaveItem, onCancelEdit, editingItem, onClearSection, documents }) => {
     const [isOpen, setIsOpen] = useState(true);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     const isAddingNew = editingItem?.section === sectionKey && !items.some(i => i.id === editingItem.item.id);
+
+    const handleGenerateClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!isOpen) setIsOpen(true);
+        setIsGenerating(true);
+    };
+    
+    const handleGenerateSubmit = async (selectedDocs: Document[], mode: GenerationMode, instructions: string) => {
+        await onGenerate(selectedDocs, mode, instructions);
+        setIsGenerating(false);
+    };
 
     return (
         <div className="bg-slate-800 rounded-lg">
@@ -392,13 +353,20 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ title, sectionKey, item
                         </button>
                     )}
                     <button onClick={(e) => { e.stopPropagation(); if (!isOpen) setIsOpen(true); onAddItem(sectionKey); }} className="px-3 py-1 text-sm font-medium text-white bg-slate-600 rounded-md hover:bg-slate-500 transition">Add New</button>
-                    <button onClick={(e) => { e.stopPropagation(); onGenerateClick(sectionKey); }} className="px-3 py-1 text-sm font-medium text-white bg-sky-600 rounded-md hover:bg-sky-500 transition">Generate</button>
+                    <button onClick={handleGenerateClick} className="px-3 py-1 text-sm font-medium text-white bg-sky-600 rounded-md hover:bg-sky-500 transition">Generate</button>
                     <ChevronDownIcon className={`h-6 w-6 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </div>
             </div>
             {isOpen && (
                 <div className="p-4 border-t border-slate-700">
-                    {/* Render form for new item at the top */}
+                    {isGenerating && (
+                        <GenerationForm 
+                            documents={documents}
+                            section={sectionKey}
+                            onSubmit={handleGenerateSubmit}
+                            onCancel={() => setIsGenerating(false)}
+                        />
+                    )}
                     {isAddingNew && editingItem && (
                         <div className="mb-4">
                             <ProfileItemForm
@@ -433,11 +401,11 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ title, sectionKey, item
                             ))}
                         </div>
                     ) : (
-                        !isAddingNew && ( // Don't show empty state if we are adding a new item
+                        !isAddingNew && !isGenerating && (
                             <div className="text-center py-4">
                                 <p className="text-slate-400 mb-4">No {sectionKey} added yet.</p>
                                  <button onClick={() => onAddItem(sectionKey)} className="px-3 py-1 text-sm font-medium text-white bg-slate-600 rounded-md hover:bg-slate-500 transition mr-2">Add Manually</button>
-                                 <button onClick={() => onGenerateClick(sectionKey)} className="px-3 py-1 text-sm font-medium text-white bg-sky-600 rounded-md hover:bg-sky-500 transition">Generate from Docs</button>
+                                 <button onClick={handleGenerateClick} className="px-3 py-1 text-sm font-medium text-white bg-sky-600 rounded-md hover:bg-sky-500 transition">Generate from Docs</button>
                             </div>
                         )
                     )}
@@ -447,36 +415,24 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ title, sectionKey, item
     );
 };
 
-
-// Main Dashboard Component
-interface DashboardProps {
+interface ProfileTabProps {
+    documents: Document[];
     onStartGenerate: (items: GeneratedItem[], section: MasterProfileSection, mode: GenerationMode) => void;
 }
-export const Dashboard: React.FC<DashboardProps> = ({ onStartGenerate }) => {
-    const [documents, setDocuments] = useState<Document[]>([]);
+
+export const ProfileTab: React.FC<ProfileTabProps> = ({ documents, onStartGenerate }) => {
     const [profile, setProfile] = useState<MasterProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [activeSection, setActiveSection] = useState<MasterProfileSection | null>(null);
     const [editingItem, setEditingItem] = useState<{ item: GeneratedItem; section: MasterProfileSection } | null>(null);
     const [itemToDelete, setItemToDelete] = useState<{ item: GeneratedItem; section: MasterProfileSection } | null>(null);
     const [sectionToClear, setSectionToClear] = useState<MasterProfileSection | null>(null);
-    const [docToDelete, setDocToDelete] = useState<Document | null>(null);
-    const [showOnboarding, setShowOnboarding] = useState(false);
-    const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
-
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const loadData = useCallback(async () => {
         try {
-            const [docs, masterProfile] = await Promise.all([
-                api.getDocuments(),
-                api.getMasterProfile()
-            ]);
-            setDocuments(docs);
+            const masterProfile = await api.getMasterProfile();
             setProfile(masterProfile);
         } catch (error) {
-            notifyError('Failed to load data.');
+            notifyError('Failed to load master profile.');
             console.error(error);
         } finally {
             setIsLoading(false);
@@ -485,92 +441,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartGenerate }) => {
 
     useEffect(() => {
         loadData();
-        // Onboarding status can remain in local storage as it's client-specific
-        if (localStorage.getItem('onboardingComplete') !== 'true') {
-            setShowOnboarding(true);
-        }
     }, [loadData]);
 
-    const handleOnboardingClose = () => {
-        localStorage.setItem('onboardingComplete', 'true');
-        setShowOnboarding(false);
-    };
-
-    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files && event.target.files[0]) {
-            const file = event.target.files[0];
-            try {
-                await api.addDocument(file);
-                loadData();
-                notifySuccess('Document uploaded successfully!');
-            } catch (error) {
-                notifyError('Failed to upload document.');
-            } finally {
-                if(event.target) event.target.value = '';
-            }
-        }
-    };
-
-    const handleDeleteDocument = (id: string) => {
-        const doc = documents.find(d => d.id === id);
-        if (doc) setDocToDelete(doc);
-    };
-
-    const handleConfirmDeleteDocument = async () => {
-        if (docToDelete) {
-            try {
-                await api.deleteDocument(docToDelete.id, docToDelete.storage_path);
-                loadData();
-                notifySuccess('Document deleted.');
-            } catch (error) {
-                notifyError('Failed to delete document.');
-            } finally {
-                setDocToDelete(null);
-            }
-        }
-    };
-
-    const handleViewDocument = (doc: Document) => {
-        setViewingDocument(doc);
-    };
-
-    const handleGenerateClick = (section: MasterProfileSection) => {
-        setActiveSection(section);
-        setIsModalOpen(true);
-    };
-
-    const handleStartGeneration = async (selectedDocs: Document[], mode: GenerationMode, instructions: string) => {
-        if (!activeSection) return;
-
+    const handleGenerate = async (selectedDocs: Document[], mode: GenerationMode, instructions: string, section: MasterProfileSection) => {
         try {
-            const existingItems = (profile && profile[activeSection] && mode === 'complement') ? profile[activeSection] : undefined;
-            const extractedData = await generateSection(selectedDocs, activeSection, instructions, existingItems as any[]);
+            const existingItems = (profile && profile[section] && mode === 'complement') ? profile[section] : undefined;
+            const extractedData = await generateSection(selectedDocs, section, instructions, existingItems as any[]);
             
             let generatedItems: GeneratedItem[];
 
-            if (activeSection === 'personal_info') {
-                // Personal info is an object, so we wrap it in an array.
+            if (section === 'personal_info') {
                 const personalInfoObject = extractedData as PersonalInfo;
                 generatedItems = [{
                     ...personalInfoObject,
                     id: `pi_${Date.now()}`
                 } as any];
             } else {
-                // Other sections are arrays of items.
                 const itemsWithoutIds = extractedData as Omit<GeneratedItem, 'id'>[];
                 generatedItems = itemsWithoutIds.map(item => ({
                     ...item,
-                    id: `${activeSection.slice(0, 3)}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-                }));
+                    id: `${section.slice(0, 3)}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+                } as GeneratedItem));
             }
 
-            onStartGenerate(generatedItems, activeSection, mode);
+            onStartGenerate(generatedItems, section, mode);
         } catch (error) {
             notifyError('Failed to extract information from documents.');
         }
     };
 
-    // --- Profile Handlers ---
     const handleSavePersonalInfo = async (newInfo: PersonalInfo) => {
         try {
             await api.updateMasterProfile({ ...profile, personal_info: newInfo });
@@ -592,7 +491,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartGenerate }) => {
             case 'awards': return { ...base, name: '', issuer: '', date: '' };
             case 'languages': return { ...base, name: '', proficiency: '' };
             default:
-                // This should not be reached for item-based sections
                 throw new Error(`Invalid section for new item creation: ${section}`);
         }
     }
@@ -618,11 +516,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartGenerate }) => {
         
         let newItems;
         if (itemIndex > -1) {
-            // Update existing item
             newItems = [...sectionItems];
             newItems[itemIndex] = updatedItem;
         } else {
-            // Add new item
             newItems = [...sectionItems, updatedItem];
         }
 
@@ -679,7 +575,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartGenerate }) => {
     };
 
     const profileSectionProps = {
-        onGenerateClick: handleGenerateClick,
         onAddItem: handleAddItem,
         onClearSection: handleClearSection,
         onEditItem: handleEditItem,
@@ -703,67 +598,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartGenerate }) => {
     const displayProfile = profile || emptyProfile;
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <OnboardingModal isOpen={showOnboarding} onClose={handleOnboardingClose} />
-
-            {/* Left Column */}
-            <div className="lg:col-span-1 space-y-6">
-                <div className="bg-slate-800 p-6 rounded-lg">
-                    <h2 className="text-xl font-bold text-white mb-4">Source Documents</h2>
-                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.doc,.docx,.txt" />
-                    <button onClick={() => fileInputRef.current?.click()} className="w-full bg-sky-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-sky-500 transition mb-4">
-                        Upload Document
-                    </button>
-                    <div className="space-y-3">
-                        {documents.map(doc => (
-                            <DocumentCard 
-                                key={doc.id} 
-                                document={doc} 
-                                onDelete={handleDeleteDocument}
-                                onView={handleViewDocument} 
-                            />
-                        ))}
-                         {documents.length === 0 && (
-                            <div className="text-center pt-4 text-slate-400">
-                                <p className="font-semibold">Start by uploading a document.</p>
-                                <p className="text-sm">Your resumes and career documents will appear here.</p>
-                            </div>
-                         )}
-                    </div>
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-white">Master Profile</h2>
+            {isLoading ? (
+                <MasterProfileSkeleton />
+            ) : (
+                <div className="space-y-4">
+                    <PersonalInfoSection
+                        info={displayProfile.personal_info}
+                        onSave={handleSavePersonalInfo}
+                        onGenerate={(docs, mode, instr) => handleGenerate(docs, mode, instr, 'personal_info')}
+                        documents={documents}
+                    />
+                    <ProfileSection title="Professional Experience" sectionKey="experience" items={displayProfile.experience} {...profileSectionProps} documents={documents} onGenerate={(docs, mode, instr) => handleGenerate(docs, mode, instr, 'experience')} />
+                    <ProfileSection title="Skills" sectionKey="skills" items={displayProfile.skills} {...profileSectionProps} documents={documents} onGenerate={(docs, mode, instr) => handleGenerate(docs, mode, instr, 'skills')} />
+                    <ProfileSection title="Projects" sectionKey="projects" items={displayProfile.projects} {...profileSectionProps} documents={documents} onGenerate={(docs, mode, instr) => handleGenerate(docs, mode, instr, 'projects')} />
+                    <ProfileSection title="Education" sectionKey="education" items={displayProfile.education} {...profileSectionProps} documents={documents} onGenerate={(docs, mode, instr) => handleGenerate(docs, mode, instr, 'education')} />
+                    <ProfileSection title="Certifications" sectionKey="certifications" items={displayProfile.certifications} {...profileSectionProps} documents={documents} onGenerate={(docs, mode, instr) => handleGenerate(docs, mode, instr, 'certifications')} />
+                    <ProfileSection title="Awards" sectionKey="awards" items={displayProfile.awards} {...profileSectionProps} documents={documents} onGenerate={(docs, mode, instr) => handleGenerate(docs, mode, instr, 'awards')} />
+                    <ProfileSection title="Languages" sectionKey="languages" items={displayProfile.languages} {...profileSectionProps} documents={documents} onGenerate={(docs, mode, instr) => handleGenerate(docs, mode, instr, 'languages')} />
                 </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="lg:col-span-2 space-y-6">
-                <h2 className="text-2xl font-bold text-white">Master Profile</h2>
-                {isLoading ? (
-                    <div className="text-center py-10">
-                        <p className="text-slate-400">Loading Master Profile...</p>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        <PersonalInfoSection 
-                            info={displayProfile.personal_info} 
-                            onSave={handleSavePersonalInfo} 
-                            onGenerateClick={() => handleGenerateClick('personal_info')}
-                        />
-                        <ProfileSection title="Professional Experience" sectionKey="experience" items={displayProfile.experience} {...profileSectionProps} />
-                        <ProfileSection title="Skills" sectionKey="skills" items={displayProfile.skills} {...profileSectionProps} />
-                        <ProfileSection title="Projects" sectionKey="projects" items={displayProfile.projects} {...profileSectionProps} />
-                        <ProfileSection title="Education" sectionKey="education" items={displayProfile.education} {...profileSectionProps} />
-                        <ProfileSection title="Certifications" sectionKey="certifications" items={displayProfile.certifications} {...profileSectionProps} />
-                        <ProfileSection title="Awards" sectionKey="awards" items={displayProfile.awards} {...profileSectionProps} />
-                        <ProfileSection title="Languages" sectionKey="languages" items={displayProfile.languages} {...profileSectionProps} />
-                    </div>
-                )}
-            </div>
-            <GenerationModal 
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSubmit={handleStartGeneration}
-                section={activeSection}
-                documents={documents}
-            />
+            )}
             <ConfirmationModal 
                 isOpen={!!itemToDelete}
                 onConfirm={handleConfirmDelete}
@@ -780,19 +635,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartGenerate }) => {
             >
                 <p className="text-slate-300">Are you sure you want to delete all items in this section? This action cannot be undone.</p>
             </ConfirmationModal>
-            <ConfirmationModal 
-                isOpen={!!docToDelete}
-                onConfirm={handleConfirmDeleteDocument}
-                onCancel={() => setDocToDelete(null)}
-                title="Confirm Document Deletion"
-            >
-                <p className="text-slate-300">Are you sure you want to delete the document "{docToDelete?.name}"? This action cannot be undone.</p>
-            </ConfirmationModal>
-            <DocumentViewerModal
-                isOpen={!!viewingDocument}
-                onClose={() => setViewingDocument(null)}
-                document={viewingDocument}
-            />
         </div>
     );
 };

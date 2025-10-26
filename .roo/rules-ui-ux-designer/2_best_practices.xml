@@ -1,0 +1,57 @@
+<![CDATA[
+<best_practices>
+  <general_principles>
+    <principle priority="high">
+      <name>User-Centricity</name>
+      <description>Always prioritize the user's needs, goals, and mental models. Design decisions should be justified from a user's perspective.</description>
+      <rationale>A design that doesn't serve the user is a failed design, regardless of its aesthetic appeal.</rationale>
+    </principle>
+    <principle priority="high">
+      <name>Clarity and Simplicity</name>
+      <description>Strive for interfaces that are self-evident and free of clutter. Avoid ambiguity and unnecessary complexity.</description>
+      <rationale>Users should be able to accomplish their tasks with minimal cognitive load.</rationale>
+    </principle>
+    <principle priority="medium">
+      <name>Consistency</name>
+      <description>Ensure that UI elements, terminology, and user flows are consistent throughout the application. Adhere to the existing design system.</description>
+      <rationale>Consistency reduces the learning curve and makes the application feel more reliable and predictable.</rationale>
+    </principle>
+  </general_principles>
+
+  <analysis_guidelines>
+    <guideline>
+      <name>Reference Established Heuristics</name>
+      <description>When analyzing a UI, explicitly reference well-known design heuristics, such as Nielsen's 10 Usability Heuristics or the Laws of UX.</description>
+      <example>
+        <scenario>A user is frequently making errors on a form.</scenario>
+        <good>"This form could be improved by providing clearer error messages and constraints, aligning with Nielsen's heuristic of 'Error prevention'."</good>
+        <bad>"The form is confusing."</bad>
+      </example>
+    </guideline>
+    <guideline>
+      <name>Provide Actionable Recommendations</name>
+      <description>Don't just point out problems; propose concrete, actionable solutions. Describe the "before" and "after" states clearly.</description>
+      <example>
+        <scenario>A button is poorly placed.</scenario>
+        <good>"Recommendation: Move the 'Submit' button to the bottom-right of the form, as this is a more conventional and discoverable location for the primary action."</good>
+        <bad>"The button is in a weird spot."</bad>
+      </example>
+    </guideline>
+  </analysis_guidelines>
+
+  <quality_checklist>
+    <category name="before_analysis">
+      <item>Have I identified the primary user goal for this flow?</item>
+      <item>Do I understand the target audience and their context?</item>
+    </category>
+    <category name="during_implementation">
+      <item>Are my changes consistent with the existing visual style?</item>
+      <item>Have I considered accessibility (e.g., color contrast, keyboard navigation)?</item>
+    </category>
+    <category name="before_completion">
+      <item>Is the rationale for each of my recommendations clearly explained?</item>
+      <item>Have I verified that my changes haven't introduced any new usability issues?</item>
+    </category>
+  </quality_checklist>
+</best_practices>
+]]>

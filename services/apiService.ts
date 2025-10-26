@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Document, MasterProfile, SavedJobDescription, SavedResume } from '../types';
+import { Document, MasterProfile, Opportunity, ResumeDraft } from '../types';
 
 // Documents
 export const getDocuments = async () => {
@@ -23,6 +23,16 @@ export const addDocument = async (file: File) => {
     storage_path: filePath,
     status: 'uploaded',
   }]).select();
+
+  if (error) throw error;
+  return data[0] as Document;
+};
+export const updateDocument = async (id: string, name: string) => {
+  const { data, error } = await supabase
+    .from('documents')
+    .update({ name })
+    .match({ id })
+    .select();
 
   if (error) throw error;
   return data[0] as Document;
@@ -68,42 +78,100 @@ export const updateMasterProfile = async (profile: Partial<MasterProfile>) => {
     return data as MasterProfile;
 };
 
-// Job Descriptions
-export const getJobDescriptions = async () => {
-  const { data, error } = await supabase.from('job_descriptions').select('*');
+// Opportunities
+export const getOpportunities = async () => {
+  const { data, error } = await supabase.from('opportunities').select('*');
   if (error) throw error;
-  return data as SavedJobDescription[];
+  return data as Opportunity[];
+};
+export const getOpportunity = async (id: string) => {
+  const { data, error } = await supabase.from('opportunities').select('*').eq('id', id).single();
+  if (error) throw error;
+  return data as Opportunity;
 };
 
-export const addJobDescription = async (job: Omit<SavedJobDescription, 'id' | 'createdAt'>) => {
+export const updateOpportunity = async (id: string, opportunityData: Pick<Opportunity, 'title' | 'job_description'>) => {
+    const { data, error } = await supabase
+        .from('opportunities')
+        .update(opportunityData)
+        .match({ id })
+        .select()
+        .single();
+    if (error) throw error;
+    return data as Opportunity;
+};
+
+export const addOpportunity = async (opportunityData: Pick<Opportunity, 'title' | 'job_description'>) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("User not authenticated");
-    const { data, error } = await supabase.from('job_descriptions').insert([{ ...job, user_id: user.id }]).select();
+    const { data, error } = await supabase.from('opportunities').insert([{ ...opportunityData, user_id: user.id }]).select().single();
     if (error) throw error;
-    return data[0] as SavedJobDescription;
+    return data as Opportunity;
 };
 
-export const deleteJobDescription = async (id: string) => {
-    const { error } = await supabase.from('job_descriptions').delete().match({ id });
+export const deleteOpportunity = async (id: string) => {
+    const { error } = await supabase.from('opportunities').delete().match({ id });
     if (error) throw error;
 };
 
-// Resumes
-export const getResumes = async () => {
-  const { data, error } = await supabase.from('resumes').select('*');
-  if (error) throw error;
-  return data as SavedResume[];
+export const updateResumeDraft = async (id: string, draftData: Partial<ResumeDraft>) => {
+    const { data, error } = await supabase
+        .from('resume_drafts')
+        .update(draftData)
+        .match({ id })
+        .select()
+        .single();
+    if (error) throw error;
+    return data as ResumeDraft;
 };
 
-export const addResume = async (resume: Omit<SavedResume, 'id' | 'createdAt'>) => {
+export const duplicateResumeDraft = async (draftId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("User not authenticated");
-    const { data, error } = await supabase.from('resumes').insert([{ ...resume, user_id: user.id }]).select();
+
+    // First, get the original draft
+    const originalDraft = await getResumeDraft(draftId);
+
+    // Create a new draft with a modified name
+    const newDraftData = {
+        ...originalDraft,
+        name: `${originalDraft.name} (Copy)`,
+    };
+    delete newDraftData.id; // Remove the original ID
+    delete newDraftData.created_at; // Let the DB handle the new timestamp
+    delete newDraftData.updated_at;
+
+    const { data, error } = await supabase
+        .from('resume_drafts')
+        .insert([{ ...newDraftData, user_id: user.id }])
+        .select()
+        .single();
+
     if (error) throw error;
-    return data[0] as SavedResume;
+    return data as ResumeDraft;
 };
 
-export const deleteResume = async (id: string) => {
-    const { error } = await supabase.from('resumes').delete().match({ id });
+// Resume Drafts
+export const getResumeDraft = async (id: string) => {
+  const { data, error } = await supabase.from('resume_drafts').select('*').eq('id', id).single();
+  if (error) throw error;
+  return data as ResumeDraft;
+};
+export const getResumeDrafts = async (opportunityId: string) => {
+  const { data, error } = await supabase.from('resume_drafts').select('*').eq('opportunity_id', opportunityId);
+  if (error) throw error;
+  return data as ResumeDraft[];
+};
+
+export const addResumeDraft = async (draftData: Pick<ResumeDraft, 'opportunity_id' | 'name' | 'markdown_content'>) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+    const { data, error } = await supabase.from('resume_drafts').insert([{ ...draftData, user_id: user.id }]).select();
+    if (error) throw error;
+    return data[0] as ResumeDraft;
+};
+
+export const deleteResumeDraft = async (id: string) => {
+    const { error } = await supabase.from('resume_drafts').delete().match({ id });
     if (error) throw error;
 };

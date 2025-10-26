@@ -1,49 +1,98 @@
-
-import React, { useState, useCallback, useContext } from 'react';
+import React, { useState, useCallback, useContext, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { Header } from './components/Header';
-import { Dashboard } from './screens/Dashboard';
-import { GenerateResume } from './screens/GenerateResume';
 import { ReviewScreen } from './screens/ReviewScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
 import { PasswordResetScreen } from './screens/PasswordResetScreen';
 import { AccountScreen } from './screens/AccountScreen';
-import { AppView, MasterProfileSection } from './types';
-import type { GeneratedItem } from './types';
+import { MasterProfileScreen } from './screens/MasterProfileScreen';
+import { OpportunitiesDashboard } from './screens/OpportunitiesDashboard';
+import { OpportunityWorkspace } from './screens/OpportunityWorkspace';
+import { ResumeEditor } from './screens/ResumeEditor';
+import { AppView, MasterProfileSection, GenerationMode, GeneratedItem } from './types';
 import { AuthContext } from './contexts/AuthContext';
+import './components/styles.css';
 
 const App: React.FC = () => {
   const auth = useContext(AuthContext);
-  const [currentView, setCurrentView] = useState<AppView>('dashboard');
+  const [currentView, setCurrentView] = useState<AppView>('master-profile');
+  const [activeOpportunityId, setActiveOpportunityId] = useState<string | null>(null);
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
   const [reviewData, setReviewData] = useState<{
     items: GeneratedItem[];
     section: MasterProfileSection;
-    mode: 'replace' | 'complement';
+    mode: GenerationMode;
   } | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const navigateTo = useCallback((view: AppView) => {
-    setCurrentView(view);
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrentView(view);
+      setIsTransitioning(false);
+    }, 150); // Half of the transition duration for cross-fade effect
   }, []);
 
-  const startReview = useCallback((items: GeneratedItem[], section: MasterProfileSection, mode: 'replace' | 'complement') => {
+  useEffect(() => {
+    setIsTransitioning(false);
+  }, [currentView]);
+
+  const startReview = useCallback((items: GeneratedItem[], section: MasterProfileSection, mode: GenerationMode) => {
     setReviewData({ items, section, mode });
-    setCurrentView('review');
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrentView('review');
+      setIsTransitioning(false);
+    }, 150);
+  }, []);
+
+  const navigateToWorkspace = useCallback((opportunityId: string) => {
+    setActiveOpportunityId(opportunityId);
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrentView('opportunity-workspace');
+      setIsTransitioning(false);
+    }, 150);
+  }, []);
+
+  const navigateToEditor = useCallback((draftId: string) => {
+    setActiveDraftId(draftId);
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrentView('resume-editor');
+      setIsTransitioning(false);
+    }, 150);
   }, []);
 
   const renderContent = () => {
-    const protectedViews: AppView[] = ['dashboard', 'generate-resume', 'review', 'account'];
+    const protectedViews: AppView[] = ['master-profile', 'opportunities', 'opportunity-workspace', 'resume-editor', 'review', 'account'];
 
     if (!auth.isAuthenticated && protectedViews.includes(currentView)) {
-        // Redirect to login if trying to access a protected route while not authenticated
         return <LoginScreen navigateTo={navigateTo} />;
     }
 
     switch (currentView) {
-      case 'dashboard':
-        return <Dashboard onStartGenerate={startReview} />;
-      case 'generate-resume':
-        return <GenerateResume />;
+      case 'master-profile':
+        return <MasterProfileScreen onStartGenerate={startReview} />;
+      case 'opportunities':
+        return <OpportunitiesDashboard navigateToWorkspace={navigateToWorkspace} />;
+      case 'opportunity-workspace':
+        if (activeOpportunityId) {
+          return <OpportunityWorkspace opportunityId={activeOpportunityId} navigateToEditor={navigateToEditor} navigateBack={() => setCurrentView('opportunities')} />;
+        }
+        setCurrentView('opportunities');
+        return null;
+      case 'resume-editor':
+        if (activeDraftId) {
+          return <ResumeEditor
+            draftId={activeDraftId}
+            navigateToOpportunities={() => setCurrentView('opportunities')}
+            navigateToWorkspace={navigateToWorkspace}
+          />;
+        }
+        setCurrentView('opportunity-workspace');
+        return null;
       case 'review':
         if (reviewData) {
           return (
@@ -51,11 +100,11 @@ const App: React.FC = () => {
               items={reviewData.items}
               section={reviewData.section}
               mode={reviewData.mode}
-              onComplete={() => navigateTo('dashboard')}
+              onComplete={() => navigateTo('master-profile')}
             />
           );
         }
-        navigateTo('dashboard');
+        navigateTo('master-profile');
         return null;
       case 'login':
         return <LoginScreen navigateTo={navigateTo} />;
@@ -66,11 +115,10 @@ const App: React.FC = () => {
       case 'account':
         return <AccountScreen />;
       default:
-        return <Dashboard onStartGenerate={startReview} />;
+        return <MasterProfileScreen onStartGenerate={startReview} />;
     }
   };
   
-  // Set initial view based on auth state
   if (auth.isLoading) {
     return (
         <div className="min-h-screen bg-slate-900 flex justify-center items-center">
@@ -85,8 +133,8 @@ const App: React.FC = () => {
         position="top-center"
         toastOptions={{
           style: {
-            background: '#334155', // slate-700
-            color: '#e2e8f0', // slate-200
+            background: '#334155',
+            color: '#e2e8f0',
           },
         }}
       />

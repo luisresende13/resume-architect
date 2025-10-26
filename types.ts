@@ -77,20 +77,24 @@ export interface MasterProfile {
   languages: Language[];
 }
 
-export interface SavedJobDescription {
+export interface Opportunity {
   id: string;
   user_id: string;
-  name: string;
-  content: string;
+  title: string;
+  job_description: string;
   created_at: string;
+  last_modified: string;
+  draft_count: number;
 }
 
-export interface SavedResume {
+export interface ResumeDraft {
   id: string;
   user_id: string;
+  opportunity_id: string;
   name: string;
   markdown_content: string;
   created_at: string;
+  updated_at: string;
 }
 
 export type MasterProfileSection = keyof MasterProfile;
@@ -100,8 +104,7 @@ export type GeneratedItem = Experience | Skill | Project | Education | Certifica
 export interface AppData {
   documents: Document[];
   masterProfile: MasterProfile;
-  savedJobDescriptions: SavedJobDescription[];
-  savedResumes: SavedResume[];
+  opportunities: Opportunity[];
 }
 
 export interface User {
@@ -113,6 +116,6 @@ export interface User {
   updated_at: string;
 }
 
-export type AppView = 'dashboard' | 'generate-resume' | 'review' | 'login' | 'register' | 'password-reset' | 'account';
+export type AppView = 'master-profile' | 'opportunities' | 'opportunity-workspace' | 'resume-editor' | 'review' | 'login' | 'register' | 'password-reset' | 'account';
 
 export type GenerationMode = 'replace' | 'complement';

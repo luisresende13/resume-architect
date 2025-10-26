@@ -92,8 +92,8 @@ export const Header: React.FC<HeaderProps> = ({ currentView, navigateTo }) => {
         <div className="flex items-center space-x-2">
             {auth.isAuthenticated && auth.user ? (
                 <>
-                    <NavLink view="dashboard">Dashboard</NavLink>
-                    <NavLink view="generate-resume">Generate Resume</NavLink>
+                    <NavLink view="master-profile">Master Profile</NavLink>
+                    <NavLink view="opportunities">Opportunities</NavLink>
                     <div className="border-l border-slate-600 ml-2 pl-2">
                        <UserMenu userEmail={auth.user.email} onLogout={auth.logout} navigateTo={navigateTo} />
                     </div>

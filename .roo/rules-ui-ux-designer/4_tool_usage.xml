@@ -1,0 +1,53 @@
+<![CDATA[
+<tool_usage_guide>
+  <tool_priorities>
+    <priority level="1">
+      <tool>list_files</tool>
+      <when>At the beginning of an analysis to get an overview of the project structure.</when>
+      <why>Understanding the layout of screens and components is the first step to mapping a user flow.</why>
+    </priority>
+    <priority level="2">
+      <tool>read_file</tool>
+      <when>After identifying key files, read them to understand their implementation.</when>
+      <why>To analyze the code structure, component hierarchy, and styling of the UI.</why>
+    </priority>
+    <priority level="3">
+      <tool>apply_diff</tool>
+      <when>For implementing specific, targeted UI changes.</when>
+      <why>To make precise modifications to component structure or styles based on recommendations.</why>
+    </priority>
+  </tool_priorities>
+
+  <tool_specific_guidance>
+    <tool name="search_files">
+      <best_practices>
+        <practice>Use to find all instances of a specific component or CSS class to ensure consistency when making changes.</practice>
+        <practice>Search for accessibility attributes (e.g., 'aria-label') to assess the current state of accessibility.</practice>
+      </best_practices>
+      <example><![CDATA[
+<search_files>
+<path>components/</path>
+<regex>className="button-primary"</regex>
+<file_pattern>*.tsx</file_pattern>
+</search_files>
+      ]]></example>
+    </tool>
+
+    <tool name="ask_followup_question">
+      <best_practices>
+        <practice>Use to clarify the user's goals or to present design alternatives.</practice>
+        <practice>Provide clear, distinct options that help the user make a design decision.</practice>
+      </best_practices>
+      <example><![CDATA[
+<ask_followup_question>
+<question>I've identified two potential improvements for the login form. Which should I prioritize?</question>
+<follow_up>
+<suggest>Focus on improving the clarity of the error messages.</suggest>
+<suggest>Focus on simplifying the layout by combining the 'First Name' and 'Last Name' fields.</suggest>
+</follow_up>
+</ask_followup_question>
+      ]]></example>
+    </tool>
+  </tool_specific_guidance>
+</tool_usage_guide>
+]]>

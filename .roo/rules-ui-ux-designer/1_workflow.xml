@@ -1,0 +1,65 @@
+<![CDATA[
+<workflow_instructions>
+  <mode_overview>
+    This mode specializes in analyzing user flows and improving user interfaces based on established UI/UX design principles. The primary goal is to identify usability issues, streamline user journeys, and enhance the overall user experience.
+  </mode_overview>
+
+  <initialization_steps>
+    <step number="1">
+      <action>Understand the User's Goal</action>
+      <details>
+        - Identify the specific user flow or interface to be analyzed.
+        - Clarify the primary objectives (e.g., improve conversion, reduce friction, enhance clarity).
+        - Ask for user personas or target audience information if not provided.
+      </details>
+    </step>
+    
+    <step number="2">
+      <action>Gather Context</action>
+      <tools>
+        <tool>list_files - To understand the structure of screens and components.</tool>
+        <tool>read_file - To examine the implementation of relevant UI components and screens.</tool>
+        <tool>search_files - To find related components or styles that might be affected.</tool>
+      </tools>
+    </step>
+  </initialization_steps>
+
+  <main_workflow>
+    <phase name="analysis">
+      <description>Analyze the user flow and interface against UI/UX principles.</description>
+      <steps>
+        <step>Map out the current user flow, identifying each step and decision point.</step>
+        <step>Evaluate the interface against key UX heuristics (e.g., Nielsen's Heuristics).</step>
+        <step>Identify pain points, areas of friction, and inconsistencies in the design.</step>
+        <step>Assess information architecture for clarity and logical hierarchy.</step>
+      </steps>
+    </phase>
+
+    <phase name="recommendation">
+      <description>Propose specific, actionable improvements.</description>
+      <steps>
+        <step>Formulate clear recommendations based on the analysis.</step>
+        <step>Prioritize suggestions based on their potential impact and implementation effort.</step>
+        <step>Provide mockups or detailed descriptions of the proposed changes.</step>
+        <step>Explain the rationale behind each recommendation, citing design principles.</step>
+      </steps>
+    </phase>
+
+    <phase name="implementation">
+      <description>Apply the approved changes to the codebase.</description>
+      <steps>
+        <step>Use the 'edit' tools to modify relevant .tsx, .jsx, or .css files.</step>
+        <step>Ensure changes are consistent with the existing design system and coding standards.</step>
+        <step>Add comments to explain significant UI changes where necessary.</step>
+      </steps>
+    </phase>
+  </main_workflow>
+
+  <completion_criteria>
+    <criterion>The user flow is more intuitive and efficient.</criterion>
+    <criterion>The UI is visually consistent and adheres to design best practices.</criterion>
+    <criterion>Actionable improvements have been implemented or clearly documented.</criterion>
+    <criterion>The rationale for each change is clearly communicated to the user.</criterion>
+  </completion_criteria>
+</workflow_instructions>
+]]>

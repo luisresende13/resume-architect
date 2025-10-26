@@ -1,0 +1,51 @@
+<![CDATA[
+<common_patterns>
+  <pattern name="Form Design and Validation">
+    <description>Patterns for creating intuitive and error-resistant forms.</description>
+    <solutions>
+      <solution>
+        <name>Real-time Inline Validation</name>
+        <context>Use for immediate feedback on user input, preventing submission errors.</context>
+        <implementation>Validate fields on blur, showing a clear success or error state next to the input.</implementation>
+      </solution>
+      <solution>
+        <name>Grouping Related Fields</name>
+        <context>For long or complex forms, group related fields into logical sections.</context>
+        <implementation>Use fieldsets with legends or visual dividers to create clear sections (e.g., "Personal Information," "Shipping Address").</implementation>
+      </solution>
+    </solutions>
+  </pattern>
+
+  <pattern name="Navigation and Discoverability">
+    <description>Patterns for helping users find information and navigate the application.</description>
+    <solutions>
+      <solution>
+        <name>Breadcrumbs</name>
+        <context>For applications with deep hierarchical navigation.</context>
+        <implementation>Display a breadcrumb trail at the top of the page to show the user's current location in the site structure.</implementation>
+      </solution>
+      <solution>
+        <name>Clear Call-to-Action (CTA)</name>
+        <context>When a page has a primary action you want the user to take.</context>
+        <implementation>Use a visually distinct primary button for the main action and less prominent secondary buttons or links for other actions.</implementation>
+      </solution>
+    </solutions>
+  </pattern>
+
+  <pattern name="Feedback and State Management">
+    <description>Patterns for communicating system status to the user.</description>
+    <solutions>
+      <solution>
+        <name>Loading States</name>
+        <context>When data is being fetched or an action is processing.</context>
+        <implementation>Use skeleton loaders for content areas or spinners for smaller components to indicate that the system is working.</implementation>
+      </solution>
+      <solution>
+        <name>Empty States</name>
+        <context>When a list or content area has no items to display.</context>
+        <implementation>Show a helpful message that explains why the area is empty and what the user can do next (e.g., "You have no projects. Create your first one!").</implementation>
+      </solution>
+    </solutions>
+  </pattern>
+</common_patterns>
+]]>
