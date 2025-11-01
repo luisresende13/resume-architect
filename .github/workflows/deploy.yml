@@ -1,0 +1,60 @@
+name: Deploy to Google Cloud VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build application
+        run: pnpm build
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Upload build artifacts to VM
+        run: |
+          gcloud compute scp --recurse ./dist ${{ secrets.GCP_VM_INSTANCE }}:/tmp/resume-architect-dist --zone=${{ secrets.GCP_ZONE }}
+
+      - name: Deploy on VM and reload Nginx
+        run: |
+          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} --zone=${{ secrets.GCP_ZONE }} --command="
+            set -e;
+            sudo mkdir -p /var/www/resume.octacity.org;
+            sudo cp -r /tmp/resume-architect-dist/* /var/www/resume.octacity.org/;
+            sudo chown -R www-data:www-data /var/www/resume.octacity.org;
+            sudo rm -rf /tmp/resume-architect-dist;
+            sudo nginx -t;
+            sudo systemctl reload nginx;
+          "
