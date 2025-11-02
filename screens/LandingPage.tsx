@@ -1,56 +1,15 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
-
-// Icons
-const SparklesIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0L14.59 8.41L23 11L14.59 13.59L12 22L9.41 13.59L1 11L9.41 8.41L12 0Z" />
-    <path d="M19 4L20.18 7.82L24 9L20.18 10.18L19 14L17.82 10.18L14 9L17.82 7.82L19 4Z" />
-  </svg>
-);
-
-const RocketIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2C12 2 7 4 7 10C7 10 5 11 5 13C5 13 7 14 9 14C9 16 10 18 12 18C14 18 15 16 15 14C17 14 19 13 19 13C19 11 17 10 17 10C17 4 12 2 12 2M12 8C10.9 8 10 8.9 10 10C10 11.11 10.9 12 12 12C13.11 12 14 11.11 14 10C14 8.9 13.11 8 12 8M7 18C7 18 6 19 6 20C6 21 7 22 7 22H17C17 22 18 21 18 20C18 19 17 18 17 18H7Z" />
-  </svg>
-);
-
-const BoltIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M7 2v11h3v9l7-12h-4l4-8z" />
-  </svg>
-);
-
-const CheckCircleIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-  </svg>
-);
-
-const UploadIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" />
-  </svg>
-);
-
-const ProfileIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-  </svg>
-);
-
-const DocumentIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-  </svg>
-);
-
-const QuoteIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" />
-  </svg>
-);
+import {
+  IoRocket,
+  IoFlash,
+  IoCheckmarkCircle,
+  IoCloudUpload,
+  IoPersonCircle,
+  IoDocumentText,
+} from 'react-icons/io5';
+import { FaQuoteRight, FaGem, FaTwitter, FaGithub, FaLinkedin } from 'react-icons/fa';
 
 export const LandingPage: React.FC = () => {
   const { isAuthenticated } = useContext(AuthContext);
@@ -62,32 +21,32 @@ export const LandingPage: React.FC = () => {
 
   const features = [
     {
-      icon: <UploadIcon className="h-8 w-8" />,
+      icon: <IoCloudUpload className="h-8 w-8" />,
       title: "Upload Your Documents",
       description: "Simply upload your existing resumes, CVs, or career documents. We support multiple formats.",
     },
     {
-      icon: <ProfileIcon className="h-8 w-8" />,
+      icon: <IoPersonCircle className="h-8 w-8" />,
       title: "AI-Powered Master Profile",
       description: "Our AI extracts and consolidates all your career information into one comprehensive master profile.",
     },
     {
-      icon: <DocumentIcon className="h-8 w-8" />,
+      icon: <IoDocumentText className="h-8 w-8" />,
       title: "Tailored Resumes in Seconds",
       description: "Paste a job description and generate a perfectly tailored resume highlighting your most relevant experience.",
     },
     {
-      icon: <BoltIcon className="h-8 w-8" />,
+      icon: <IoFlash className="h-8 w-8" />,
       title: "Instant Refinements",
       description: "Use natural language commands to refine your resume. 'Make it more concise' or 'emphasize leadership skills'.",
     },
     {
-      icon: <SparklesIcon className="h-8 w-8" />,
+      icon: <FaGem className="h-8 w-8" />,
       title: "Smart Content Selection",
       description: "AI intelligently selects the most relevant information from your master profile for each opportunity.",
     },
     {
-      icon: <RocketIcon className="h-8 w-8" />,
+      icon: <IoRocket className="h-8 w-8" />,
       title: "Export & Apply",
       description: "Download your tailored resume in multiple formats and apply to jobs with confidence.",
     },
@@ -137,6 +96,51 @@ export const LandingPage: React.FC = () => {
     },
   ];
 
+  useEffect(() => {
+    const jsonLdData = {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'SoftwareApplication',
+          name: 'Resume Architect',
+          applicationCategory: 'ProductivityApplication',
+          operatingSystem: 'Web',
+          description: 'An AI-powered resume builder that helps users create perfectly tailored resumes for every job opportunity in seconds.',
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: '4.9', // Placeholder
+            reviewCount: '125', // Placeholder
+          },
+          offers: {
+            '@type': 'Offer',
+            price: '0',
+            priceCurrency: 'USD',
+          },
+        },
+        {
+          '@type': 'FAQPage',
+          mainEntity: faqs.map((faq) => ({
+            '@type': 'Question',
+            name: faq.question,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: faq.answer,
+            },
+          })),
+        },
+      ],
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.innerHTML = JSON.stringify(jsonLdData);
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []); // Empty dependency array ensures this runs only once on mount
+
   return (
     <div className="bg-slate-900 text-white">
       {/* Hero Section */}
@@ -145,7 +149,7 @@ export const LandingPage: React.FC = () => {
         <div className="container mx-auto max-w-6xl relative z-10">
           <div className="text-center">
             <div className="inline-flex items-center space-x-2 px-4 py-2 bg-sky-900/30 rounded-full mb-6 border border-sky-800/50">
-              <SparklesIcon className="h-4 w-4 text-sky-400" />
+              <FaGem className="h-4 w-4 text-sky-400" />
               <span className="text-sm text-sky-300 font-medium">AI-Powered Resume Builder</span>
             </div>
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white mb-6 leading-tight">
@@ -176,15 +180,15 @@ export const LandingPage: React.FC = () => {
             </div>
             <div className="flex flex-wrap justify-center gap-8 text-sm text-slate-400">
               <div className="flex items-center space-x-2">
-                <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                <IoCheckmarkCircle className="h-5 w-5 text-green-500" />
                 <span>No credit card required</span>
               </div>
               <div className="flex items-center space-x-2">
-                <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                <IoCheckmarkCircle className="h-5 w-5 text-green-500" />
                 <span>Free forever plan</span>
               </div>
               <div className="flex items-center space-x-2">
-                <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                <IoCheckmarkCircle className="h-5 w-5 text-green-500" />
                 <span>Export anytime</span>
               </div>
             </div>
@@ -268,7 +272,7 @@ export const LandingPage: React.FC = () => {
                 key={index}
                 className="bg-slate-800 rounded-xl p-6 border border-slate-700 relative"
               >
-                <QuoteIcon className="h-10 w-10 text-sky-500/30 absolute top-4 right-4" />
+                <FaQuoteRight className="h-5 w-5 text-sky-500/30 absolute top-6 right-6" />
                 <p className="text-slate-300 mb-6 leading-relaxed italic">"{testimonial.quote}"</p>
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center justify-center w-12 h-12 bg-sky-600 rounded-full text-white font-bold">
@@ -350,17 +354,50 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 sm:px-6 md:px-8 bg-slate-800/50 border-t border-slate-800">
+      <footer className="py-20 px-4 sm:px-6 md:px-8 bg-slate-900 border-t border-slate-800">
         <div className="container mx-auto max-w-6xl">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="flex items-center space-x-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z" />
-              </svg>
-              <span className="text-white font-semibold">Resume Architect</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+            {/* Brand Info */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <IoDocumentText className="h-7 w-7 text-sky-400" />
+                <span className="text-xl text-white font-semibold">Resume Architect</span>
+              </div>
+              <p className="text-slate-400 text-sm">AI-powered resumes, tailored in seconds.</p>
             </div>
-            <div className="text-slate-400 text-sm">
-              © 2025 Resume Architect. All rights reserved.
+
+            {/* Links */}
+            <div>
+              <h3 className="text-md font-semibold text-white mb-4">Product</h3>
+              <ul className="space-y-3">
+                <li><a href="#how-it-works" className="text-slate-400 hover:text-sky-400 transition">How It Works</a></li>
+                <li><Link to="/register" className="text-slate-400 hover:text-sky-400 transition">Sign Up</Link></li>
+                <li><Link to="/login" className="text-slate-400 hover:text-sky-400 transition">Log In</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-md font-semibold text-white mb-4">Company</h3>
+              <ul className="space-y-3">
+                <li><a href="#" className="text-slate-400 hover:text-sky-400 transition">About Us</a></li>
+                <li><a href="#" className="text-slate-400 hover:text-sky-400 transition">Blog</a></li>
+                <li><a href="#" className="text-slate-400 hover:text-sky-400 transition">Contact</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-md font-semibold text-white mb-4">Legal</h3>
+              <ul className="space-y-3">
+                <li><a href="#" className="text-slate-400 hover:text-sky-400 transition">Privacy Policy</a></li>
+                <li><a href="#" className="text-slate-400 hover:text-sky-400 transition">Terms of Service</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row justify-between items-center">
+            <p className="text-slate-500 text-sm">© 2025 Resume Architect. All rights reserved.</p>
+            <div className="flex space-x-5 mt-4 sm:mt-0">
+              <a href="#" className="text-slate-500 hover:text-sky-400 transition"><FaTwitter className="h-5 w-5" /></a>
+              <a href="#" className="text-slate-500 hover:text-sky-400 transition"><FaGithub className="h-5 w-5" /></a>
+              <a href="#" className="text-slate-500 hover:text-sky-400 transition"><FaLinkedin className="h-5 w-5" /></a>
             </div>
           </div>
         </div>
