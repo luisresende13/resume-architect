@@ -82,13 +82,21 @@ export const Header: React.FC<HeaderProps> = ({ currentView, navigateTo }) => {
     );
   };
 
+  const handleLogoClick = () => {
+    if (auth.isAuthenticated) {
+      navigateTo('master-profile');
+    } else {
+      navigateTo('landing');
+    }
+  };
+
   return (
     <header className="bg-slate-800/50 backdrop-blur-sm sticky top-0 z-10">
       <nav className="container mx-auto px-4 sm:px-6 md:px-8 flex justify-between items-center h-16">
-        <div className="flex items-center space-x-2">
+        <button onClick={handleLogoClick} className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-sky-400" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"></path></svg>
           <h1 className="text-xl font-bold text-white">Resume Architect</h1>
-        </div>
+        </button>
         <div className="flex items-center space-x-2">
             {auth.isAuthenticated && auth.user ? (
                 <>

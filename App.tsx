@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useContext, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { Header } from './components/Header';
+import { LandingPage } from './screens/LandingPage';
 import { ReviewScreen } from './screens/ReviewScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
@@ -16,7 +17,7 @@ import './components/styles.css';
 
 const App: React.FC = () => {
   const auth = useContext(AuthContext);
-  const [currentView, setCurrentView] = useState<AppView>('master-profile');
+  const [currentView, setCurrentView] = useState<AppView>('landing');
   const [activeOpportunityId, setActiveOpportunityId] = useState<string | null>(null);
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
   const [reviewData, setReviewData] = useState<{
@@ -73,6 +74,8 @@ const App: React.FC = () => {
     }
 
     switch (currentView) {
+      case 'landing':
+        return <LandingPage navigateTo={navigateTo} />;
       case 'master-profile':
         return <MasterProfileScreen onStartGenerate={startReview} />;
       case 'opportunities':
@@ -138,8 +141,8 @@ const App: React.FC = () => {
           },
         }}
       />
-      {auth.isAuthenticated && <Header currentView={currentView} navigateTo={navigateTo} />}
-      <main className={auth.isAuthenticated ? "p-4 sm:p-6 md:p-8" : ""}>
+      {currentView !== 'landing' && <Header currentView={currentView} navigateTo={navigateTo} />}
+      <main className={currentView !== 'landing' && auth.isAuthenticated ? "p-4 sm:p-6 md:p-8" : ""}>
         {renderContent()}
       </main>
     </div>

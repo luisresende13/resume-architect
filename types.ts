@@ -116,6 +116,6 @@ export interface User {
   updated_at: string;
 }
 
-export type AppView = 'master-profile' | 'opportunities' | 'opportunity-workspace' | 'resume-editor' | 'review' | 'login' | 'register' | 'password-reset' | 'account';
+export type AppView = 'landing' | 'master-profile' | 'opportunities' | 'opportunity-workspace' | 'resume-editor' | 'review' | 'login' | 'register' | 'password-reset' | 'account';
 
 export type GenerationMode = 'replace' | 'complement';

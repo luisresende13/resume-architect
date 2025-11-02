@@ -49,10 +49,13 @@ This creates the production build in the `dist/` folder.
 gcloud compute scp --recurse ./dist cpd-niteroi-proxy:/tmp/resume-architect-dist
 ```
 
-### 3. Create Subdomain Directory Structure
+### 3. Deploy Files to Subdomain Directory
 
 ```bash
-# Create subdomain directory
+# Remove existing directory to ensure a clean deployment
+gcloud compute ssh cpd-niteroi-proxy --command="sudo rm -rf /var/www/resume.octacity.org"
+
+# Create a new, empty subdomain directory
 gcloud compute ssh cpd-niteroi-proxy --command="sudo mkdir -p /var/www/resume.octacity.org"
 
 # Copy files to subdomain location

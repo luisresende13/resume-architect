@@ -22,7 +22,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigateTo }) => {
     setIsLoading(true);
     const success = await auth.login(email, password);
     if (success) {
-      navigateTo('dashboard');
+      navigateTo('master-profile');
     }
     setIsLoading(false);
   };
