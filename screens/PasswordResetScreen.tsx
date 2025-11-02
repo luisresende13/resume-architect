@@ -1,14 +1,10 @@
 
 import React, { useState, useContext } from 'react';
-import { AppView } from '../types';
+import { Link } from 'react-router-dom';
 import { AuthLayout } from '../components/AuthLayout';
 import { AuthContext } from '../contexts/AuthContext';
 
-interface PasswordResetScreenProps {
-  navigateTo: (view: AppView) => void;
-}
-
-export const PasswordResetScreen: React.FC<PasswordResetScreenProps> = ({ navigateTo }) => {
+export const PasswordResetScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -32,9 +28,9 @@ export const PasswordResetScreen: React.FC<PasswordResetScreenProps> = ({ naviga
       {submitted ? (
         <div className="text-center">
           <p className="text-slate-300 mb-6">A password reset link has been sent to <span className="font-medium text-white">{email}</span>. Please check your inbox.</p>
-          <button onClick={() => navigateTo('login')} className="text-sm text-sky-400 hover:text-sky-300">
+          <Link to="/login" className="text-sm text-sky-400 hover:text-sky-300">
             &larr; Back to Log In
-          </button>
+          </Link>
         </div>
       ) : (
         <>
@@ -47,7 +43,7 @@ export const PasswordResetScreen: React.FC<PasswordResetScreenProps> = ({ naviga
             </button>
           </form>
           <p className="text-center text-sm text-slate-400 mt-8">
-            Remember your password? <button onClick={() => navigateTo('login')} className="font-medium text-sky-400 hover:text-sky-300">Log In</button>
+            Remember your password? <Link to="/login" className="font-medium text-sky-400 hover:text-sky-300">Log In</Link>
           </p>
         </>
       )}

@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useContext, useEffect } from 'react';
+import React, { useContext } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { Routes, Route, useLocation, Navigate, Outlet, useParams } from 'react-router-dom';
 import { Header } from './components/Header';
 import { LandingPage } from './screens/LandingPage';
 import { ReviewScreen } from './screens/ReviewScreen';
@@ -11,117 +12,39 @@ import { MasterProfileScreen } from './screens/MasterProfileScreen';
 import { OpportunitiesDashboard } from './screens/OpportunitiesDashboard';
 import { OpportunityWorkspace } from './screens/OpportunityWorkspace';
 import { ResumeEditor } from './screens/ResumeEditor';
-import { AppView, MasterProfileSection, GenerationMode, GeneratedItem } from './types';
+import { MasterProfileSection, GenerationMode, GeneratedItem } from './types';
 import { AuthContext } from './contexts/AuthContext';
 import './components/styles.css';
 
+const ProtectedRoute: React.FC = () => {
+  const { isAuthenticated } = useContext(AuthContext);
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <Outlet />;
+};
+
+
+const OpportunityWorkspaceWrapper = () => {
+    const { opportunityId } = useParams<{ opportunityId: string }>();
+    if (!opportunityId) return <Navigate to="/opportunities" />;
+    return <OpportunityWorkspace opportunityId={opportunityId} />;
+};
+
+const ResumeEditorWrapper = () => {
+    const { draftId } = useParams<{ draftId: string }>();
+    if (!draftId) return <Navigate to="/opportunities" />;
+    return <ResumeEditor draftId={draftId} />;
+};
+
+
 const App: React.FC = () => {
   const auth = useContext(AuthContext);
-  const [currentView, setCurrentView] = useState<AppView>('landing');
-  const [activeOpportunityId, setActiveOpportunityId] = useState<string | null>(null);
-  const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
-  const [reviewData, setReviewData] = useState<{
-    items: GeneratedItem[];
-    section: MasterProfileSection;
-    mode: GenerationMode;
-  } | null>(null);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const location = useLocation();
 
-  const navigateTo = useCallback((view: AppView) => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentView(view);
-      setIsTransitioning(false);
-    }, 150); // Half of the transition duration for cross-fade effect
-  }, []);
-
-  useEffect(() => {
-    setIsTransitioning(false);
-  }, [currentView]);
-
-  const startReview = useCallback((items: GeneratedItem[], section: MasterProfileSection, mode: GenerationMode) => {
-    setReviewData({ items, section, mode });
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentView('review');
-      setIsTransitioning(false);
-    }, 150);
-  }, []);
-
-  const navigateToWorkspace = useCallback((opportunityId: string) => {
-    setActiveOpportunityId(opportunityId);
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentView('opportunity-workspace');
-      setIsTransitioning(false);
-    }, 150);
-  }, []);
-
-  const navigateToEditor = useCallback((draftId: string) => {
-    setActiveDraftId(draftId);
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentView('resume-editor');
-      setIsTransitioning(false);
-    }, 150);
-  }, []);
-
-  const renderContent = () => {
-    const protectedViews: AppView[] = ['master-profile', 'opportunities', 'opportunity-workspace', 'resume-editor', 'review', 'account'];
-
-    if (!auth.isAuthenticated && protectedViews.includes(currentView)) {
-        return <LoginScreen navigateTo={navigateTo} />;
-    }
-
-    switch (currentView) {
-      case 'landing':
-        return <LandingPage navigateTo={navigateTo} />;
-      case 'master-profile':
-        return <MasterProfileScreen onStartGenerate={startReview} />;
-      case 'opportunities':
-        return <OpportunitiesDashboard navigateToWorkspace={navigateToWorkspace} />;
-      case 'opportunity-workspace':
-        if (activeOpportunityId) {
-          return <OpportunityWorkspace opportunityId={activeOpportunityId} navigateToEditor={navigateToEditor} navigateBack={() => setCurrentView('opportunities')} />;
-        }
-        setCurrentView('opportunities');
-        return null;
-      case 'resume-editor':
-        if (activeDraftId) {
-          return <ResumeEditor
-            draftId={activeDraftId}
-            navigateToOpportunities={() => setCurrentView('opportunities')}
-            navigateToWorkspace={navigateToWorkspace}
-          />;
-        }
-        setCurrentView('opportunity-workspace');
-        return null;
-      case 'review':
-        if (reviewData) {
-          return (
-            <ReviewScreen
-              items={reviewData.items}
-              section={reviewData.section}
-              mode={reviewData.mode}
-              onComplete={() => navigateTo('master-profile')}
-            />
-          );
-        }
-        navigateTo('master-profile');
-        return null;
-      case 'login':
-        return <LoginScreen navigateTo={navigateTo} />;
-      case 'register':
-        return <RegisterScreen navigateTo={navigateTo} />;
-      case 'password-reset':
-        return <PasswordResetScreen navigateTo={navigateTo} />;
-      case 'account':
-        return <AccountScreen />;
-      default:
-        return <MasterProfileScreen onStartGenerate={startReview} />;
-    }
-  };
-  
   if (auth.isLoading) {
     return (
         <div className="min-h-screen bg-slate-900 flex justify-center items-center">
@@ -130,9 +53,16 @@ const App: React.FC = () => {
     );
   }
 
+  const useGlobalPadding = !(location.pathname === '/') && !(location.pathname === '/login');
+  const reviewState = location.state as {
+    items: GeneratedItem[];
+    section: MasterProfileSection;
+    mode: GenerationMode;
+  } | null;
+
   return (
     <div className="min-h-screen bg-slate-900 font-sans">
-      <Toaster 
+      <Toaster
         position="top-center"
         toastOptions={{
           style: {
@@ -141,9 +71,38 @@ const App: React.FC = () => {
           },
         }}
       />
-      {currentView !== 'landing' && <Header currentView={currentView} navigateTo={navigateTo} />}
-      <main className={currentView !== 'landing' && auth.isAuthenticated ? "p-4 sm:p-6 md:p-8" : ""}>
-        {renderContent()}
+      <Header />
+      <main className="relative">
+        <div key={location.pathname} className={`${useGlobalPadding ? "p-4 sm:p-6 md:p-8" : ""} page-transition`}>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginScreen />} />
+            <Route path="/register" element={<RegisterScreen />} />
+            <Route path="/password-reset" element={<PasswordResetScreen />} />
+            
+            <Route element={<ProtectedRoute />}>
+              <Route path="/account" element={<AccountScreen />} />
+              <Route path="/master-profile" element={<MasterProfileScreen />} />
+              <Route path="/opportunities" element={<OpportunitiesDashboard />} />
+              <Route path="/opportunities/:opportunityId" element={<OpportunityWorkspaceWrapper />} />
+              <Route path="/drafts/:draftId/edit" element={<ResumeEditorWrapper />} />
+              <Route
+                path="/review"
+                element={
+                  reviewState ? (
+                    <ReviewScreen
+                      items={reviewState.items}
+                      section={reviewState.section}
+                      mode={reviewState.mode}
+                    />
+                  ) : (
+                    <Navigate to="/master-profile" replace />
+                  )
+                }
+              />
+            </Route>
+          </Routes>
+        </div>
       </main>
     </div>
   );

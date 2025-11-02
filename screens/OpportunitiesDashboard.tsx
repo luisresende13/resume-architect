@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as api from '../services/apiService';
 import { Opportunity } from '../types';
 import { Modal } from '../components/Modal';
@@ -27,7 +28,7 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({ opportunity, onDelete
     const descriptionSnippet = opportunity.job_description.split(' ').slice(0, 20).join(' ') + '...';
 
     return (
-        <div className="bg-slate-800 rounded-lg p-4 flex flex-col h-full transition-all duration-200 hover:bg-slate-700/50 hover:shadow-lg">
+        <div className="bg-slate-800 rounded-lg p-4 flex flex-col h-full transition-all duration-200 hover:bg-slate-700/50 hover:shadow-lg transform hover:-translate-y-1">
             <div onClick={() => onSelect(opportunity.id)} className="flex-grow cursor-pointer mb-4">
                 <h3 className="text-lg font-bold text-white mb-1">{opportunity.title}</h3>
                 <div className="flex items-center text-sm text-slate-400 space-x-4 mb-3">
@@ -44,11 +45,8 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({ opportunity, onDelete
     );
 };
 
-interface OpportunitiesDashboardProps {
-    navigateToWorkspace: (opportunityId: string) => void;
-}
-
-export const OpportunitiesDashboard: React.FC<OpportunitiesDashboardProps> = ({ navigateToWorkspace }) => {
+export const OpportunitiesDashboard: React.FC = () => {
+    const navigate = useNavigate();
     const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -82,7 +80,7 @@ export const OpportunitiesDashboard: React.FC<OpportunitiesDashboardProps> = ({ 
             setIsAddModalOpen(false);
             setNewOpportunityTitle('');
             setNewOpportunityJD('');
-            navigateToWorkspace(newOpportunity.id);
+            navigate(`/opportunities/${newOpportunity.id}`);
         } catch (error) {
             notifyError('Failed to create opportunity.');
         }
@@ -140,7 +138,7 @@ export const OpportunitiesDashboard: React.FC<OpportunitiesDashboardProps> = ({ 
                             key={op.id}
                             opportunity={op}
                             onDelete={handleDeleteOpportunity}
-                            onSelect={navigateToWorkspace}
+                            onSelect={(id) => navigate(`/opportunities/${id}`)}
                             onEdit={handleEditOpportunity}
                         />
                     ))

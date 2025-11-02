@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import * as api from '../services/apiService';
 import * as gemini from '../services/geminiService';
 import { Opportunity, ResumeDraft } from '../types';
@@ -83,11 +84,10 @@ const DraftCard: React.FC<DraftCardProps> = ({ draft, onDelete, onSelect, onRena
 
 interface OpportunityWorkspaceProps {
     opportunityId: string;
-    navigateToEditor: (draftId: string) => void;
-    navigateBack: () => void;
 }
 
-export const OpportunityWorkspace: React.FC<OpportunityWorkspaceProps> = ({ opportunityId, navigateToEditor, navigateBack }) => {
+export const OpportunityWorkspace: React.FC<OpportunityWorkspaceProps> = ({ opportunityId }) => {
+    const navigate = useNavigate();
     const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
     const [drafts, setDrafts] = useState<ResumeDraft[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -120,7 +120,7 @@ export const OpportunityWorkspace: React.FC<OpportunityWorkspaceProps> = ({ oppo
                 markdown_content: ''
             });
             // The draft is created empty, and the user is taken to the editor to generate it.
-            navigateToEditor(newDraft.id);
+            navigate(`/drafts/${newDraft.id}/edit`);
         } catch (error) {
             notifyError('Failed to create new draft.');
         }
@@ -171,13 +171,13 @@ export const OpportunityWorkspace: React.FC<OpportunityWorkspaceProps> = ({ oppo
             {/* Context Panel */}
             <div className="md:col-span-1 bg-slate-800 rounded-lg h-[85vh] flex flex-col">
                 <div className="p-6 border-b border-slate-700">
-                    <button
-                        onClick={navigateBack}
+                    <Link
+                        to="/opportunities"
                         className="inline-flex items-center space-x-2 text-sm text-sky-400 hover:text-sky-300 transition-colors mb-4 group"
                     >
                         <ChevronLeftIcon className="h-5 w-5 transform group-hover:-translate-x-1 transition-transform" />
                         <span>Back to Opportunities</span>
-                    </button>
+                    </Link>
                     <h2 className="text-2xl font-bold text-white">{opportunity?.title || 'Loading...'}</h2>
                 </div>
                 <div className="p-6 overflow-y-auto">
@@ -207,10 +207,10 @@ export const OpportunityWorkspace: React.FC<OpportunityWorkspaceProps> = ({ oppo
                     <div className="space-y-4">
                         {drafts.map(draft => (
                             <DraftCard 
-                                key={draft.id} 
+                                key={draft.id}
                                 draft={draft}
                                 onDelete={handleDeleteDraft}
-                                onSelect={navigateToEditor}
+                                onSelect={(id) => navigate(`/drafts/${id}/edit`)}
                                 onRename={handleRenameDraft}
                                 onDuplicate={handleDuplicateDraft}
                             />

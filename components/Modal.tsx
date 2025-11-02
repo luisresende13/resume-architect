@@ -26,7 +26,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
       // Wait for animation to complete before unmounting
       const timeout = setTimeout(() => {
         setShouldRender(false);
-      }, 200); // Match this with the CSS transition duration
+      }, 300); // Match this with the CSS transition duration
       return () => clearTimeout(timeout);
     }
   }, [isOpen]);
@@ -35,14 +35,14 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
 
   return (
     <div
-      className={`fixed inset-0 bg-black z-50 flex justify-center items-center p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-black z-50 flex justify-center items-center p-4 transition-opacity duration-300 ${
         isAnimating ? 'bg-opacity-70' : 'bg-opacity-0'
       }`}
       onClick={onClose}
     >
       <div
-        className={`bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col transition-all duration-200 ${
-          isAnimating ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+        className={`bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col transition-all duration-300 ${
+          isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
         }`}
         onClick={(e) => e.stopPropagation()}
       >

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ProfileTab } from '../components/ProfileTab';
 import { SourcesTab } from '../components/SourcesTab';
 import * as api from '../services/apiService';
@@ -7,11 +8,8 @@ import { OnboardingModal } from '../components/OnboardingModal';
 
 type Tab = 'sources' | 'profile';
 
-interface MasterProfileScreenProps {
-    onStartGenerate: (items: GeneratedItem[], section: MasterProfileSection, mode: GenerationMode) => void;
-}
-
-export const MasterProfileScreen: React.FC<MasterProfileScreenProps> = ({ onStartGenerate }) => {
+export const MasterProfileScreen: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,6 +37,10 @@ export const MasterProfileScreen: React.FC<MasterProfileScreenProps> = ({ onStar
   const handleOnboardingClose = () => {
     localStorage.setItem('onboardingComplete', 'true');
     setShowOnboarding(false);
+  };
+
+  const onStartGenerate = (items: GeneratedItem[], section: MasterProfileSection, mode: GenerationMode) => {
+    navigate('/review', { state: { items, section, mode } });
   };
 
   return (

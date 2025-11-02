@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as api from '../services/apiService';
 import { notifySuccess, notifyError } from '../services/notificationService';
 import type { GeneratedItem, MasterProfileSection } from '../types';
@@ -8,7 +9,6 @@ interface ReviewScreenProps {
   items: GeneratedItem[];
   section: MasterProfileSection;
   mode: 'replace' | 'complement';
-  onComplete: () => void;
 }
 
 const ProfileItemCard: React.FC<{
@@ -136,7 +136,8 @@ const ProfileItemCard: React.FC<{
 };
 
 
-export const ReviewScreen: React.FC<ReviewScreenProps> = ({ items, section, mode, onComplete }) => {
+export const ReviewScreen: React.FC<ReviewScreenProps> = ({ items, section, mode }) => {
+  const navigate = useNavigate();
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   
   // Initialize all items as selected by default
@@ -216,14 +217,14 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({ items, section, mode
         }
         
         notifySuccess(`Master Profile updated with ${itemsToSave.length} item${itemsToSave.length > 1 ? 's' : ''}!`);
-        onComplete();
+        navigate('/master-profile');
     } catch (error) {
         notifyError("Failed to update master profile.");
     }
   };
 
   const handleDiscard = () => {
-    onComplete();
+    navigate('/master-profile');
   };
 
   const capitalizedSection = section.charAt(0).toUpperCase() + section.slice(1);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Breadcrumb } from '../components/Breadcrumb';
 import { EditorToolbar } from '../components/EditorToolbar';
 import * as api from '../services/apiService';
@@ -25,11 +26,10 @@ const InfoIcon: React.FC<{ className?: string }> = ({ className }) => (
 
 interface ResumeEditorProps {
     draftId: string;
-    navigateToOpportunities: () => void;
-    navigateToWorkspace: (opportunityId: string) => void;
 }
 
-export const ResumeEditor: React.FC<ResumeEditorProps> = ({ draftId, navigateToOpportunities, navigateToWorkspace }) => {
+export const ResumeEditor: React.FC<ResumeEditorProps> = ({ draftId }) => {
+    const navigate = useNavigate();
     const [draft, setDraft] = useState<ResumeDraft | null>(null);
     const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
     const [masterProfile, setMasterProfile] = useState<MasterProfile | null>(null);
@@ -301,8 +301,8 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({ draftId, navigateToO
                 <div>
                     <Breadcrumb
                         items={[
-                            { label: 'Opportunities', onClick: navigateToOpportunities },
-                            ...(opportunity ? [{ label: opportunity.title, onClick: () => navigateToWorkspace(opportunity.id) }] : []),
+                            { label: 'Opportunities', to: '/opportunities' },
+                            ...(opportunity ? [{ label: opportunity.title, to: `/opportunities/${opportunity.id}` }] : []),
                             { label: draft.name },
                         ]}
                     />

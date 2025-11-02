@@ -1,9 +1,6 @@
-import React, { useState } from 'react';
-import { AppView } from '../types';
-
-interface LandingPageProps {
-  navigateTo: (view: AppView) => void;
-}
+import React, { useState, useContext, useEffect } from 'react';
+import { Link, Navigate } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext';
 
 // Icons
 const SparklesIcon = ({ className }: { className?: string }) => (
@@ -55,8 +52,13 @@ const QuoteIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export const LandingPage: React.FC<LandingPageProps> = ({ navigateTo }) => {
+export const LandingPage: React.FC = () => {
+  const { isAuthenticated } = useContext(AuthContext);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  if (isAuthenticated) {
+    return <Navigate to="/master-profile" replace />;
+  }
 
   const features = [
     {
@@ -136,35 +138,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ navigateTo }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      {/* Header/Navigation */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-sm border-b border-slate-800">
-        <nav className="container mx-auto px-4 sm:px-6 md:px-8 flex justify-between items-center h-16">
-          <div className="flex items-center space-x-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z" />
-            </svg>
-            <h1 className="text-xl font-bold text-white">Resume Architect</h1>
-          </div>
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => navigateTo('login')}
-              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition"
-            >
-              Log In
-            </button>
-            <button
-              onClick={() => navigateTo('register')}
-              className="px-4 py-2 text-sm font-medium text-white bg-sky-600 rounded-md hover:bg-sky-500 transition"
-            >
-              Get Started Free
-            </button>
-          </div>
-        </nav>
-      </header>
-
+    <div className="bg-slate-900 text-white">
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 md:px-8 relative overflow-hidden">
+      <section className="pt-20 pb-20 px-4 sm:px-6 md:px-8 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-sky-900/20 via-slate-900 to-slate-900"></div>
         <div className="container mx-auto max-w-6xl relative z-10">
           <div className="text-center">
@@ -183,12 +159,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ navigateTo }) => {
               Stop maintaining multiple resume versions. Create one master profile and let AI generate perfectly tailored resumes for every job opportunity.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
-              <button
-                onClick={() => navigateTo('register')}
+              <Link
+                to="/register"
                 className="px-8 py-4 text-lg font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-500 transition shadow-lg shadow-sky-900/50 hover:shadow-xl hover:shadow-sky-900/60 transform hover:scale-105"
               >
                 Start Building Free
-              </button>
+              </Link>
               <button
                 onClick={() => {
                   document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
@@ -227,9 +203,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ navigateTo }) => {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-sky-500/50 transition-all duration-300 hover:transform hover:scale-105 group"
+                className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-sky-500/50 transition-all duration-300 transform hover:scale-105 group"
               >
-                <div className="flex items-center justify-center w-16 h-16 bg-sky-900/30 rounded-lg mb-4 text-sky-400 group-hover:bg-sky-500 group-hover:text-white transition-all">
+                <div className="flex items-center justify-center w-16 h-16 bg-sky-900/30 rounded-lg mb-4 text-sky-400 group-hover:bg-sky-500 group-hover:text-white transition-all duration-300">
                   {feature.icon}
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
@@ -328,7 +304,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ navigateTo }) => {
                 >
                   <span className="text-lg font-semibold text-white">{faq.question}</span>
                   <svg
-                    className={`h-6 w-6 text-sky-400 transform transition-transform ${
+                    className={`h-6 w-6 text-sky-400 transform transition-transform duration-300 ${
                       openFaq === index ? 'rotate-180' : ''
                     }`}
                     viewBox="0 0 24 24"
@@ -337,11 +313,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ navigateTo }) => {
                     <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
                   </svg>
                 </button>
-                {openFaq === index && (
-                  <div className="px-6 pb-4">
+                <div
+                  className={`transition-all duration-500 ease-in-out overflow-hidden ${
+                    openFaq === index ? 'max-h-40' : 'max-h-0'
+                  }`}
+                >
+                  <div className="px-6 pb-4 pt-2">
                     <p className="text-slate-400 leading-relaxed">{faq.answer}</p>
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
@@ -357,12 +337,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ navigateTo }) => {
           <p className="text-xl text-slate-300 mb-8 leading-relaxed">
             Join thousands of job seekers who are already creating better resumes with AI.
           </p>
-          <button
-            onClick={() => navigateTo('register')}
+          <Link
+            to="/register"
             className="px-12 py-5 text-xl font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-500 transition shadow-xl shadow-sky-900/50 hover:shadow-2xl hover:shadow-sky-900/60 transform hover:scale-105"
           >
             Get Started Free - No Credit Card Required
-          </button>
+          </Link>
           <p className="text-sm text-slate-400 mt-6">
             Free forever plan • Export anytime • No hidden fees
           </p>
