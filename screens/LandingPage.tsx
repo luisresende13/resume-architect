@@ -9,7 +9,7 @@ import {
   IoPersonCircle,
   IoDocumentText,
 } from 'react-icons/io5';
-import { FaQuoteRight, FaGem, FaTwitter, FaGithub, FaLinkedin } from 'react-icons/fa';
+import { FaQuoteRight, FaGem } from 'react-icons/fa';
 
 export const LandingPage: React.FC = () => {
   const { isAuthenticated } = useContext(AuthContext);
@@ -197,7 +197,7 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 px-4 sm:px-6 md:px-8 bg-slate-800/50">
+      <section id="features" className="py-20 px-4 sm:px-6 md:px-8 bg-slate-800/50">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-4">Everything You Need to Stand Out</h2>
@@ -260,7 +260,7 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Social Proof/Testimonials */}
-      <section className="py-20 px-4 sm:px-6 md:px-8 bg-slate-800/50">
+      <section id="testimonials" className="py-20 px-4 sm:px-6 md:px-8 bg-slate-800/50">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-4">Loved by Job Seekers</h2>
@@ -290,7 +290,7 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 px-4 sm:px-6 md:px-8">
+      <section id="faq" className="py-20 px-4 sm:px-6 md:px-8">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-4">Frequently Asked Questions</h2>
@@ -354,50 +354,46 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-20 px-4 sm:px-6 md:px-8 bg-slate-900 border-t border-slate-800">
+      <footer className="py-16 px-4 sm:px-6 md:px-8 bg-slate-900 border-t border-slate-800">
         <div className="container mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-            {/* Brand Info */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Column 1: Brand and Copyright */}
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <IoDocumentText className="h-7 w-7 text-sky-400" />
                 <span className="text-xl text-white font-semibold">Resume Architect</span>
               </div>
-              <p className="text-slate-400 text-sm">AI-powered resumes, tailored in seconds.</p>
+              <p className="text-slate-400 text-sm">
+                © 2025 Resume Architect. All rights reserved. <br />
+                AI-powered resumes, tailored in seconds.
+              </p>
             </div>
 
-            {/* Links */}
-            <div>
-              <h3 className="text-md font-semibold text-white mb-4">Product</h3>
-              <ul className="space-y-3">
-                <li><a href="#how-it-works" className="text-slate-400 hover:text-sky-400 transition">How It Works</a></li>
-                <li><Link to="/register" className="text-slate-400 hover:text-sky-400 transition">Sign Up</Link></li>
-                <li><Link to="/login" className="text-slate-400 hover:text-sky-400 transition">Log In</Link></li>
+            {/* Column 2: Navigation */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold text-white">Navigate</h4>
+              <ul className="space-y-2">
+                <li><a href="#features" onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }} className="text-slate-400 hover:text-sky-400 transition">Features</a></li>
+                <li><a href="#how-it-works" onClick={(e) => { e.preventDefault(); document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }); }} className="text-slate-400 hover:text-sky-400 transition">How It Works</a></li>
+                <li><a href="#testimonials" onClick={(e) => { e.preventDefault(); document.getElementById('testimonials')?.scrollIntoView({ behavior: 'smooth' }); }} className="text-slate-400 hover:text-sky-400 transition">Testimonials</a></li>
+                <li><a href="#faq" onClick={(e) => { e.preventDefault(); document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' }); }} className="text-slate-400 hover:text-sky-400 transition">FAQ</a></li>
               </ul>
             </div>
-            <div>
-              <h3 className="text-md font-semibold text-white mb-4">Company</h3>
-              <ul className="space-y-3">
-                <li><a href="#" className="text-slate-400 hover:text-sky-400 transition">About Us</a></li>
-                <li><a href="#" className="text-slate-400 hover:text-sky-400 transition">Blog</a></li>
-                <li><a href="#" className="text-slate-400 hover:text-sky-400 transition">Contact</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-md font-semibold text-white mb-4">Legal</h3>
-              <ul className="space-y-3">
-                <li><a href="#" className="text-slate-400 hover:text-sky-400 transition">Privacy Policy</a></li>
-                <li><a href="#" className="text-slate-400 hover:text-sky-400 transition">Terms of Service</a></li>
-              </ul>
-            </div>
-          </div>
 
-          <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row justify-between items-center">
-            <p className="text-slate-500 text-sm">© 2025 Resume Architect. All rights reserved.</p>
-            <div className="flex space-x-5 mt-4 sm:mt-0">
-              <a href="#" className="text-slate-500 hover:text-sky-400 transition"><FaTwitter className="h-5 w-5" /></a>
-              <a href="#" className="text-slate-500 hover:text-sky-400 transition"><FaGithub className="h-5 w-5" /></a>
-              <a href="#" className="text-slate-500 hover:text-sky-400 transition"><FaLinkedin className="h-5 w-5" /></a>
+            {/* Column 3: Call to Action / Back to Top */}
+            <div className="space-y-4 md:text-right">
+              <h4 className="text-lg font-semibold text-white">Ready to Start?</h4>
+              <Link
+                to="/register"
+                className="inline-block px-6 py-3 font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-500 transition shadow-lg shadow-sky-900/50"
+              >
+                Build Your Resume
+              </Link>
+               <p className="text-sm text-slate-400 pt-4">
+                <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-sky-400 transition">
+                  Back to top &uarr;
+                </a>
+              </p>
             </div>
           </div>
         </div>

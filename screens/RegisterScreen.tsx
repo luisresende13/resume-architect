@@ -3,10 +3,10 @@ import React, { useState, useContext, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { AuthLayout } from '../components/AuthLayout';
+import { FcGoogle } from 'react-icons/fc';
 
 const CheckIcon = ({ className }: { className: string }) => <svg className={className} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>;
 const CrossIcon = ({ className }: { className: string }) => <svg className={className} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.697a1 1 0 010-1.414z" clipRule="evenodd" /></svg>;
-const GoogleIcon = () => <svg className="h-5 w-5" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L38.802 6.57C34.566 2.734 29.626 0 24 0C10.745 0 0 10.745 0 24s10.745 24 24 24s24-10.745 24-24c0-1.341-.128-2.65-.359-3.917z"></path><path fill="#FF3D00" d="M6.306 14.691c-1.229 2.222-1.903 4.79-1.903 7.558s.674 5.336 1.903 7.558L12.381 26.6C10.041 22.42 10.041 17.58 12.381 13.4z"></path><path fill="#4CAF50" d="M24 48c5.636 0 10.573-2.181 14.158-5.819L32.144 36.4C29.69 38.62 26.96 40 24 40c-4.45 0-8.31-2.007-10.61-5.025L6.306 31.447C10.046 39.585 16.463 48 24 48z"></path><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-4.45 0-8.31-2.007-10.61-5.025l-7.084 6.887C10.046 39.585 16.463 48 24 48s13.954-8.415 17.694-20.553L43.611 20.083z"></path></svg>;
 
 export const RegisterScreen: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -73,7 +73,7 @@ export const RegisterScreen: React.FC = () => {
       </div>
 
       <div className="grid gap-4">
-          <button onClick={auth.loginWithGoogle} className="w-full flex items-center justify-center space-x-2 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-md text-white font-medium text-sm transition"><GoogleIcon /><span>Google</span></button>
+          <button onClick={auth.loginWithGoogle} className="w-full flex items-center justify-center space-x-2 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-md text-white font-medium text-sm transition"><FcGoogle className="h-5 w-5" /><span>Google</span></button>
       </div>
 
       <p className="text-center text-sm text-slate-400 mt-8">

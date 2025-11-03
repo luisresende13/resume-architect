@@ -53,12 +53,12 @@ const PersonalInfoSection: React.FC<{
         <h3 className="text-lg font-semibold text-white">Personal Information</h3>
         <div className="flex items-center space-x-4">
           {!isEditing && (
-            <button onClick={() => setIsEditing(true)} className="flex items-center space-x-2 px-3 py-1 text-sm font-medium text-white bg-slate-600 rounded-md hover:bg-slate-500 transition">
+            <button onClick={() => { setIsEditing(true); setIsGenerating(false); }} className="flex items-center space-x-2 px-3 py-1 text-sm font-medium text-white bg-slate-600 rounded-md hover:bg-slate-500 transition">
               <EditIcon className="h-4 w-4" />
               <span>Edit</span>
             </button>
           )}
-          <button onClick={() => setIsGenerating(true)} className="px-3 py-1 text-sm font-medium text-white bg-sky-600 rounded-md hover:bg-sky-500 transition">Generate</button>
+          <button onClick={() => { setIsGenerating(true); setIsEditing(false); }} className="px-3 py-1 text-sm font-medium text-white bg-sky-600 rounded-md hover:bg-sky-500 transition">Generate</button>
         </div>
       </div>
       {isGenerating && (
@@ -329,6 +329,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ title, sectionKey, item
     const handleGenerateClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (!isOpen) setIsOpen(true);
+        onCancelEdit();
         setIsGenerating(true);
     };
     
@@ -352,7 +353,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ title, sectionKey, item
                             <TrashIcon className="h-4 w-4" />
                         </button>
                     )}
-                    <button onClick={(e) => { e.stopPropagation(); if (!isOpen) setIsOpen(true); onAddItem(sectionKey); }} className="px-3 py-1 text-sm font-medium text-white bg-slate-600 rounded-md hover:bg-slate-500 transition">Add New</button>
+                    <button onClick={(e) => { e.stopPropagation(); if (!isOpen) setIsOpen(true); setIsGenerating(false); onAddItem(sectionKey); }} className="px-3 py-1 text-sm font-medium text-white bg-slate-600 rounded-md hover:bg-slate-500 transition">Add New</button>
                     <button onClick={handleGenerateClick} className="px-3 py-1 text-sm font-medium text-white bg-sky-600 rounded-md hover:bg-sky-500 transition">Generate</button>
                     <ChevronDownIcon className={`h-6 w-6 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </div>
