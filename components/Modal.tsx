@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
   isOpen: boolean;
@@ -14,6 +15,9 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
 
   useEffect(() => {
     if (isOpen) {
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+      
       setShouldRender(true);
       // Slight delay to trigger the animation after render
       requestAnimationFrame(() => {
@@ -23,6 +27,10 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
       });
     } else {
       setIsAnimating(false);
+      
+      // Restore body scroll
+      document.body.style.overflow = '';
+      
       // Wait for animation to complete before unmounting
       const timeout = setTimeout(() => {
         setShouldRender(false);
@@ -33,9 +41,9 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
 
   if (!shouldRender) return null;
 
-  return (
+  const modalContent = (
     <div
-      className={`fixed inset-0 bg-black z-50 flex justify-center items-center p-4 transition-opacity duration-300 ${
+      className={`fixed inset-0 bg-black z-50 flex items-center justify-center p-4 transition-opacity duration-300 ${
         isAnimating ? 'bg-opacity-70' : 'bg-opacity-0'
       }`}
       onClick={onClose}
@@ -60,4 +68,6 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

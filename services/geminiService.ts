@@ -182,7 +182,7 @@ export const generateSection = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -248,6 +248,14 @@ export async function* generateTailoredResumeStream(profile: MasterProfile, jobD
     Use the job description to identify and highlight the most relevant information from my master profile.
     Only include information that is relevant to the target job description.
 
+    Do not copy verbatin from the master profile, just use it as a source of truth.
+
+    Make it ATS friendly.
+
+    Use all sections and section items from the master profile that are relevant to the job description.
+    
+    Leverage the master profile information as much as possible in order to get me hired.
+    
     Do not include any preamble or explanation, just the resume content itself.
 
     ${customInstructions ? `**Custom Instructions:**\n---\n${customInstructions}\n---\n\n` : ''}
@@ -272,7 +280,7 @@ export async function* generateTailoredResumeStream(profile: MasterProfile, jobD
   
   try {
     const stream = await ai.models.generateContentStream({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
         thinkingConfig: {
@@ -330,7 +338,7 @@ export async function* refineResumeStream(profile: MasterProfile, markdownConten
 
   try {
     const stream = await ai.models.generateContentStream({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
         thinkingConfig: {
@@ -378,7 +386,7 @@ export const generateFullProfile = async (documents: Document[]): Promise<Master
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
