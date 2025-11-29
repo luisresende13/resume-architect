@@ -169,7 +169,7 @@ These are embedded in the build during the `vite build` process.
 ├── assets/
 │   ├── index-*.js      # Bundled JavaScript files
 │   └── *.css           # Bundled CSS files
-└── favicon.ico         # Favicon
+└── favicon.svg         # Favicon
 ```
 
 ## Nginx Configuration Details
