@@ -343,9 +343,10 @@ export const LandingPage: React.FC = () => {
           </p>
           <Link
             to="/register"
-            className="px-12 py-5 text-xl font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-500 transition shadow-xl shadow-sky-900/50 hover:shadow-2xl hover:shadow-sky-900/60 transform hover:scale-105"
+            className="inline-flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-8 py-4 text-lg sm:text-xl font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-500 transition shadow-xl shadow-sky-900/50 hover:shadow-2xl hover:shadow-sky-900/60 transform hover:scale-105"
           >
-            Get Started Free - No Credit Card Required
+            <span>Get Started Free</span>
+            <span className="text-sm sm:text-lg">No Credit Card Required</span>
           </Link>
           <p className="text-sm text-slate-400 mt-6">
             Free forever plan • Export anytime • No hidden fees
