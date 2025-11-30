@@ -52,20 +52,13 @@ gcloud compute scp --recurse ./dist cpd-niteroi-proxy:/tmp/resume-architect-dist
 ### 3. Deploy Files to Subdomain Directory
 
 ```bash
-# Remove existing directory to ensure a clean deployment
-gcloud compute ssh cpd-niteroi-proxy --command="sudo rm -rf /var/www/resume.octacity.org"
-
-# Create a new, empty subdomain directory
-gcloud compute ssh cpd-niteroi-proxy --command="sudo mkdir -p /var/www/resume.octacity.org"
-
-# Copy files to subdomain location
-gcloud compute ssh cpd-niteroi-proxy --command="sudo cp -r /tmp/resume-architect-dist/* /var/www/resume.octacity.org/"
-
-# Set proper permissions
-gcloud compute ssh cpd-niteroi-proxy --command="sudo chown -R www-data:www-data /var/www/resume.octacity.org"
-
-# Clean up temporary files
-gcloud compute ssh cpd-niteroi-proxy --command="sudo rm -rf /tmp/resume-architect-dist"
+gcloud compute ssh cpd-niteroi-proxy --command='
+  sudo rm -rf /var/www/resume.octacity.org &&
+  sudo mkdir -p /var/www/resume.octacity.org &&
+  sudo cp -r /tmp/resume-architect-dist/* /var/www/resume.octacity.org/ &&
+  sudo chown -R www-data:www-data /var/www/resume.octacity.org &&
+  sudo rm -rf /tmp/resume-architect-dist
+'
 ```
 
 ### 4. Create Nginx Configuration
