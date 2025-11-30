@@ -88,7 +88,7 @@ export const LandingPage: React.FC = () => {
     },
     {
       question: "What file formats are supported?",
-      answer: "You can upload PDF, DOC, DOCX, and TXT files. Generated resumes can be exported as PDF or copied as Markdown text.",
+      answer: "You can upload plain text files, including TXT, Markdown (.md), JSON, CSV, XML, and HTML. Generated resumes can be exported as PDF or copied as Markdown text.",
     },
     {
       question: "How is this different from other resume builders?",

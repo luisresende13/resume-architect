@@ -147,7 +147,7 @@ export const SourcesTab: React.FC<SourcesTabProps> = ({ documents, loadData, nav
     return (
         <div className="bg-slate-800 p-6 rounded-lg">
             <h2 className="text-xl font-bold text-white mb-4">Source Documents</h2>
-            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.doc,.docx,.txt" />
+            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".txt,.md,.json,.csv,.xml,.html" />
             <div className="flex space-x-4 mb-4">
                 <button onClick={() => fileInputRef.current?.click()} className="flex-1 bg-sky-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-sky-500 transition">
                     Upload Document
