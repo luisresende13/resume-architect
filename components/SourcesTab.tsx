@@ -138,7 +138,9 @@ export const SourcesTab: React.FC<SourcesTabProps> = ({ documents, loadData, nav
             const generatedProfile = await gemini.generateFullProfile(docsToProcess);
             navigateToReview(generatedProfile);
         } catch (error) {
-            notifyError('Failed to generate profile.');
+            // Display user-friendly error message from service
+            const errorMessage = (error as any)?.message || 'Failed to generate profile. Please try again.';
+            notifyError(errorMessage);
         } finally {
             setIsGenerating(false);
         }

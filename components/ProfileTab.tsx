@@ -467,7 +467,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ documents, onStartGenera
 
             onStartGenerate(generatedItems, section, mode);
         } catch (error) {
-            notifyError('Failed to extract information from documents.');
+            // Display user-friendly error message from service
+            const errorMessage = (error as any)?.message || 'Failed to extract information from documents. Please try again.';
+            notifyError(errorMessage);
         }
     };
 

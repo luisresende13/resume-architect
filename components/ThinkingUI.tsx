@@ -37,6 +37,9 @@ interface ThinkingUIProps {
   isThinking: boolean;
   isCancellable: boolean;
   isGenerating?: boolean;
+  retryAttempt?: number;
+  maxRetries?: number;
+  error?: string | null;
 }
 
 const ThinkingStepComponent: React.FC<{ step: ThinkingStep; isLastStep: boolean; isThinking: boolean, isGenerating?: boolean }> = ({ step, isLastStep, isThinking, isGenerating }) => {
@@ -87,13 +90,39 @@ const ThinkingStepComponent: React.FC<{ step: ThinkingStep; isLastStep: boolean;
   );
 };
 
-export const ThinkingUI = forwardRef<HTMLDivElement, ThinkingUIProps>(({ steps, onCancel, isThinking, isCancellable, isGenerating }, ref) => {
+export const ThinkingUI = forwardRef<HTMLDivElement, ThinkingUIProps>(({ steps, onCancel, isThinking, isCancellable, isGenerating, retryAttempt, maxRetries, error }, ref) => {
+  const getStatusText = () => {
+    if (error) {
+      return 'Generation Failed';
+    }
+    if (retryAttempt && retryAttempt > 0 && maxRetries) {
+      return `Retrying... (Attempt ${retryAttempt}/${maxRetries})`;
+    }
+    if (isThinking && !isGenerating) {
+      return 'AI is Thinking...';
+    }
+    if (isThinking && isGenerating) {
+      return 'Generating Resume...';
+    }
+    return 'Process Complete';
+  };
+
   return (
     <div className="bg-slate-900 rounded-lg h-full flex flex-col animate-fade-in">
       <div className="p-4 border-b border-slate-700">
-        <h2 className="text-lg font-bold text-white text-center">
-          {isThinking && !isGenerating ? 'AI is Thinking...' : (isThinking && isGenerating ? 'Generating Resume...' : 'Process Complete')}
+        <h2 className={`text-lg font-bold text-center ${error ? 'text-red-400' : 'text-white'}`}>
+          {getStatusText()}
         </h2>
+        {error && (
+          <div className="mt-3 p-3 bg-red-900/20 border border-red-700/50 rounded-md">
+            <p className="text-sm text-red-300 text-center">{error}</p>
+          </div>
+        )}
+        {retryAttempt && retryAttempt > 0 && !error && (
+          <p className="text-sm text-slate-400 text-center mt-1">
+            Previous attempt encountered an issue. Retrying with exponential backoff...
+          </p>
+        )}
       </div>
       <div ref={ref} className="flex-1 overflow-y-auto">
         {steps.map((step, index) => (
@@ -106,16 +135,25 @@ export const ThinkingUI = forwardRef<HTMLDivElement, ThinkingUIProps>(({ steps, 
           />
         ))}
       </div>
-      {isCancellable && isThinking && (
+      {(isCancellable && isThinking) || error ? (
         <div className="p-4 border-t border-slate-700 animate-fade-in">
+          {error ? (
             <button
-            onClick={onCancel}
-            className="w-full px-4 py-2 font-semibold text-white bg-slate-600 rounded-md hover:bg-slate-500 transition-all duration-200"
+              onClick={onCancel}
+              className="w-full px-4 py-2 font-semibold text-white bg-slate-600 rounded-md hover:bg-slate-500 transition-all duration-200"
             >
-            Cancel Generation
+              Dismiss
             </button>
+          ) : (
+            <button
+              onClick={onCancel}
+              className="w-full px-4 py-2 font-semibold text-white bg-slate-600 rounded-md hover:bg-slate-500 transition-all duration-200"
+            >
+              Cancel Generation
+            </button>
+          )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 });

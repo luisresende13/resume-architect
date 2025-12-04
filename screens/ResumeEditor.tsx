@@ -42,6 +42,7 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({ draftId }) => {
     const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
     const [isGeneratingText, setIsGeneratingText] = useState(false);
     const [showThinkingUI, setShowThinkingUI] = useState(false);
+    const [generationError, setGenerationError] = useState<string | null>(null);
     const [selectedSections, setSelectedSections] = useState<MasterProfileSection[]>([]);
     const [isSectionSelectorOpen, setIsSectionSelectorOpen] = useState(false);
     const generationAbortController = useRef<AbortController | null>(null);
@@ -157,9 +158,11 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({ draftId }) => {
         const originalContent = savedContent;
         setIsGenerating(true);
         setIsEditing(false); // Switch to preview mode when generation starts
+        setIsSectionSelectorOpen(false); // Close the Customize AI Context section
         setShowThinkingUI(true);
         setThinkingSteps([]);
         setIsGeneratingText(false);
+        setGenerationError(null); // Clear any previous errors
         let currentContent = "";
 
         const profileForPrompt = { ...masterProfile };
@@ -197,9 +200,15 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({ draftId }) => {
             }
         } catch (error: any) {
             if (error.name !== 'AbortError') {
-                notifyError('Failed to generate resume.');
+                // Display user-friendly error message
+                const errorMessage = error?.message || 'Failed to generate resume. Please try again.';
+                setGenerationError(errorMessage);
+                notifyError(errorMessage);
+                // Keep ThinkingUI visible to show the error
+                setShowThinkingUI(true);
             } else {
                 setEditedContent(originalContent);
+                setGenerationError(null);
             }
         } finally {
             setIsGenerating(false);
@@ -211,6 +220,12 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({ draftId }) => {
         if (generationAbortController.current) {
             generationAbortController.current.abort();
             notifySuccess('Generation cancelled.');
+        }
+        // Clear error state when cancelling/dismissing
+        setGenerationError(null);
+        // Optionally hide the ThinkingUI after dismissing error
+        if (generationError && !isGenerating) {
+            setShowThinkingUI(false);
         }
     };
 
@@ -228,9 +243,11 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({ draftId }) => {
         const originalContent = savedContent;
         setIsGenerating(true);
         setIsEditing(false); // Switch to preview mode when refinement starts
+        setIsSectionSelectorOpen(false); // Close the Customize AI Context section
         setShowThinkingUI(true);
         setThinkingSteps([]);
         setIsGeneratingText(false);
+        setGenerationError(null); // Clear any previous errors
         let currentContent = "";
 
         const profileForPrompt = { ...masterProfile };
@@ -273,9 +290,15 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({ draftId }) => {
             }
         } catch (error: any) {
             if (error.name !== 'AbortError') {
-                notifyError('Failed to refine resume.');
+                // Display user-friendly error message
+                const errorMessage = error?.message || 'Failed to refine resume. Please try again.';
+                setGenerationError(errorMessage);
+                notifyError(errorMessage);
+                // Keep ThinkingUI visible to show the error
+                setShowThinkingUI(true);
             } else {
                 setEditedContent(originalContent);
+                setGenerationError(null);
             }
         } finally {
             setIsGenerating(false);
@@ -378,6 +401,7 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({ draftId }) => {
                                     isThinking={isGenerating}
                                     isCancellable={true}
                                     isGenerating={isGeneratingText}
+                                    error={generationError}
                                 />
                             </div>
                         )}

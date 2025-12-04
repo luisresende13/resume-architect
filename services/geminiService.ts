@@ -1,8 +1,66 @@
 import { GoogleGenAI, Type } from "@google/genai";
 // FIX: Import `MasterProfile` to resolve type error.
 import { Document, MasterProfile, MasterProfileSection } from '../types';
+import {
+  retryWithBackoff,
+  withTimeout,
+  withStreamTimeout,
+  isRetryableError,
+  TimeoutError,
+  calculateBackoffDelay,
+  sleep,
+  RetryOptions,
+} from './retryUtils';
+import { GEMINI_CONFIG, getGeminiConfig } from './geminiConfig';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+
+/**
+ * Builds inference config object from environment variables
+ * Only includes parameters that are explicitly set
+ */
+function buildInferenceConfig(additionalConfig: any = {}) {
+  const config: any = { ...additionalConfig };
+  
+  if (GEMINI_CONFIG.inference.temperature !== undefined) {
+    config.temperature = GEMINI_CONFIG.inference.temperature;
+  }
+  if (GEMINI_CONFIG.inference.topP !== undefined) {
+    config.topP = GEMINI_CONFIG.inference.topP;
+  }
+  if (GEMINI_CONFIG.inference.topK !== undefined) {
+    config.topK = GEMINI_CONFIG.inference.topK;
+  }
+  if (GEMINI_CONFIG.inference.maxOutputTokens !== undefined) {
+    config.maxOutputTokens = GEMINI_CONFIG.inference.maxOutputTokens;
+  }
+  
+  return config;
+}
+
+/**
+ * Timeout configuration for API calls
+ * Uses environment variables with defaults
+ */
+export const TIMEOUT_CONFIG = {
+  connectionTimeout: GEMINI_CONFIG.timeout.connectionTimeout,
+  requestTimeout: GEMINI_CONFIG.timeout.requestTimeout,
+  firstTokenTimeout: GEMINI_CONFIG.timeout.firstTokenTimeout,
+  streamHeartbeatInterval: GEMINI_CONFIG.timeout.streamHeartbeatInterval,
+};
+
+/**
+ * Gets retry configuration from environment variables
+ * 
+ * @returns RetryOptions object with configured values
+ */
+function getRetryConfig(): RetryOptions {
+  return {
+    maxRetries: GEMINI_CONFIG.retry.maxRetries,
+    baseDelay: GEMINI_CONFIG.retry.baseDelay,
+    maxDelay: GEMINI_CONFIG.retry.maxDelay,
+  };
+}
 
 const getResponseSchemaForSection = (section: MasterProfileSection) => {
   switch (section) {
@@ -115,6 +173,50 @@ const getResponseSchemaForSection = (section: MasterProfileSection) => {
 
 import { supabase } from './supabaseClient';
 
+/**
+ * Error message mapping for user-friendly error messages
+ */
+const ERROR_MESSAGES: Record<string, string> = {
+  'model is overloaded': 'The AI service is currently busy. Please try again in a moment.',
+  'overloaded': 'The AI service is currently busy. Please try again in a moment.',
+  'timeout': 'The request took too long. Please try again.',
+  'rate limit': 'Too many requests. Please wait a moment and try again.',
+  'quota': 'API quota exceeded. Please try again later.',
+  'network': 'Network error. Please check your connection and try again.',
+  'connection': 'Connection error. Please check your connection and try again.',
+  'default': 'An error occurred during generation. Please try again.',
+};
+
+/**
+ * Gets a user-friendly error message from an error object
+ * 
+ * @param error - The error object
+ * @param context - Additional context (e.g., section name, operation type)
+ * @returns User-friendly error message
+ */
+function getUserFriendlyErrorMessage(error: any, context?: string): string {
+  if (!error) {
+    return ERROR_MESSAGES.default;
+  }
+
+  const errorMessage = String(error.message || error.toString() || '').toLowerCase();
+  
+  // Check for specific error patterns
+  for (const [key, message] of Object.entries(ERROR_MESSAGES)) {
+    if (key !== 'default' && errorMessage.includes(key)) {
+      return context ? `${message} (${context})` : message;
+    }
+  }
+
+  // Check for timeout errors
+  if (error instanceof TimeoutError) {
+    return ERROR_MESSAGES.timeout;
+  }
+
+  // Default message
+  return context ? `${ERROR_MESSAGES.default} (${context})` : ERROR_MESSAGES.default;
+}
+
 export const generateSection = async (
   documents: Document[],
   section: MasterProfileSection,
@@ -181,14 +283,41 @@ export const generateSection = async (
   }
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: getResponseSchemaForSection(section),
-      },
-    });
+    // Wrap API call with retry and timeout
+    const apiCall = async () => {
+      const response = await ai.models.generateContent({
+        model: GEMINI_CONFIG.model,
+        contents: prompt,
+        config: {
+          ...buildInferenceConfig(),
+          responseMimeType: 'application/json',
+          responseSchema: getResponseSchemaForSection(section),
+        },
+      });
+      return response;
+    };
+
+    const retryConfig = getRetryConfig();
+    const response = await retryWithBackoff(
+      () => withTimeout(
+        apiCall(),
+        TIMEOUT_CONFIG.requestTimeout,
+        `generateSection timeout for ${section}`
+      ),
+      {
+        ...retryConfig,
+        onRetry: (attempt, error, delay) => {
+          // Structured logging for retry attempts
+          console.warn(`[RETRY] generateSection(${section}) - Attempt ${attempt}/${retryConfig.maxRetries}`, {
+            errorType: error?.name || 'Unknown',
+            errorMessage: error?.message || String(error),
+            delayMs: delay,
+            section,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+    );
 
     let jsonText = response.text.trim();
     
@@ -208,9 +337,19 @@ export const generateSection = async (
 
     return JSON.parse(jsonText);
   } catch (error) {
-    console.error("Error extracting information from documents:", error);
-    // Re-throw the error to be handled by the UI component
-    throw error;
+    // Enhanced error handling with user-friendly messages
+    const userMessage = getUserFriendlyErrorMessage(error, `section: ${section}`);
+    
+    // Structured logging for final failures
+    console.error(`[ERROR] generateSection(${section}) - Final failure`, {
+      errorType: error instanceof TimeoutError ? 'TimeoutError' : (error as any)?.name || 'Unknown',
+      errorMessage: (error as any)?.message || String(error),
+      section,
+      timestamp: new Date().toISOString(),
+    });
+    
+    // Throw user-friendly error
+    throw new Error(userMessage);
   }
 };
 export async function* generateTailoredResumeStream(profile: MasterProfile, jobDescription: string, customInstructions: string, signal: AbortSignal): AsyncGenerator<any> {
@@ -278,28 +417,167 @@ export async function* generateTailoredResumeStream(profile: MasterProfile, jobD
     ---
   `;
   
-  try {
-    const stream = await ai.models.generateContentStream({
-      model: 'gemini-3-pro-preview',
-      contents: prompt,
-      config: {
-        thinkingConfig: {
-          includeThoughts: true,
-        }
-      }
-    });
+  const retryConfig = getRetryConfig();
+  let attempt = 0;
+  const maxAttempts = retryConfig.maxRetries! + 1; // Initial attempt + retries
 
-    for await (const chunk of stream) {
+  while (attempt < maxAttempts) {
+    // Track metrics for this attempt
+    const apiCallStartTime = Date.now();
+    let connectionTime: number | null = null;
+    let streamReadyTime: number | null = null;
+    let firstTokenReceived = false;
+    let firstTokenTime: number | null = null;
+    let streamEndTime: number | null = null;
+    let totalChunks = 0;
+
+    try {
+      // Check if user aborted before retry
       if (signal.aborted) {
         throw new DOMException("Aborted by user", "AbortError");
       }
-      // Yield the entire chunk so the frontend can process thoughts and text
-      yield chunk;
+
+      // Wrap stream creation with connection timeout
+      const streamCreationPromise = ai.models.generateContentStream({
+        model: 'gemini-3-pro-preview',
+        contents: prompt,
+        config: {
+          thinkingConfig: {
+            includeThoughts: true,
+          }
+        }
+      });
+
+      // Apply connection timeout to stream creation
+      const stream = await withTimeout(
+        streamCreationPromise,
+        TIMEOUT_CONFIG.connectionTimeout,
+        `Connection timeout for generateTailoredResumeStream after ${TIMEOUT_CONFIG.connectionTimeout}ms`
+      );
+
+      // Track connection time (time from API call to stream ready)
+      streamReadyTime = Date.now();
+      connectionTime = streamReadyTime - apiCallStartTime;
+
+      // Wrap stream with timeout monitoring
+      const monitoredStream = withStreamTimeout(
+        stream,
+        {
+          firstTokenTimeout: TIMEOUT_CONFIG.firstTokenTimeout,
+          heartbeatInterval: TIMEOUT_CONFIG.streamHeartbeatInterval,
+          onTimeout: () => {
+            // Structured logging for timeout events
+            console.warn('[TIMEOUT] Stream timeout: no first token received', {
+              operation: 'generateTailoredResumeStream',
+              timeoutMs: TIMEOUT_CONFIG.firstTokenTimeout,
+              connectionTimeMs: connectionTime,
+              timestamp: new Date().toISOString(),
+            });
+          },
+          onHeartbeatWarning: (timeSinceLastChunk) => {
+            // Structured logging for heartbeat warnings
+            console.warn('[HEARTBEAT] Stream heartbeat warning', {
+              operation: 'generateTailoredResumeStream',
+              timeSinceLastChunkMs: timeSinceLastChunk,
+              thresholdMs: TIMEOUT_CONFIG.streamHeartbeatInterval,
+              chunksReceived: totalChunks,
+              timestamp: new Date().toISOString(),
+            });
+          }
+        }
+      );
+      
+      for await (const chunk of monitoredStream) {
+        if (signal.aborted) {
+          throw new DOMException("Aborted by user", "AbortError");
+        }
+        
+        totalChunks++;
+        
+        if (!firstTokenReceived) {
+          firstTokenReceived = true;
+          firstTokenTime = Date.now();
+          
+          // Calculate all timing metrics
+          const timeToFirstTokenFromStream = firstTokenTime - streamReadyTime!;
+          const totalTimeToFirstToken = firstTokenTime - apiCallStartTime;
+          
+          // Structured logging for comprehensive metrics
+          console.log('[METRIC] Stream metrics', {
+            operation: 'generateTailoredResumeStream',
+            attempt: attempt + 1,
+            connectionTimeMs: connectionTime!,
+            timeToFirstTokenFromStreamMs: timeToFirstTokenFromStream,
+            totalTimeToFirstTokenMs: totalTimeToFirstToken,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        
+        // Yield the entire chunk so the frontend can process thoughts and text
+        yield chunk;
+      }
+      
+      // Track stream completion time
+      streamEndTime = Date.now();
+      const totalGenerationTime = streamEndTime - apiCallStartTime;
+      const streamDuration = streamEndTime - streamReadyTime!;
+      
+      // Log completion metrics
+      console.log('[METRIC] Stream completion', {
+        operation: 'generateTailoredResumeStream',
+        attempt: attempt + 1,
+        totalGenerationTimeMs: totalGenerationTime,
+        streamDurationMs: streamDuration,
+        totalChunks,
+        timestamp: new Date().toISOString(),
+      });
+      
+      // Success - exit retry loop
+      return;
+      
+    } catch (error: any) {
+      // Don't retry if user aborted
+      if (error.name === 'AbortError') {
+        throw error;
+      }
+
+      attempt++;
+      
+      // Check if error is retryable and we have attempts left
+      if (!isRetryableError(error) || attempt >= maxAttempts) {
+        // Enhanced error handling with user-friendly messages
+        const userMessage = getUserFriendlyErrorMessage(error, 'resume generation');
+        
+        // Structured logging for final failures
+        console.error(`[ERROR] generateTailoredResumeStream - Final failure`, {
+          errorType: error instanceof TimeoutError ? 'TimeoutError' : error?.name || 'Unknown',
+          errorMessage: error?.message || String(error),
+          attempts: attempt,
+          timestamp: new Date().toISOString(),
+        });
+        
+        // Throw user-friendly error
+        throw new Error(userMessage);
+      }
+      
+      // Calculate backoff and wait before retrying
+      const delay = calculateBackoffDelay(
+        attempt - 1,
+        retryConfig.baseDelay!,
+        retryConfig.maxDelay!
+      );
+      
+      // Structured logging for retry attempts
+      console.warn(`[RETRY] generateTailoredResumeStream - Attempt ${attempt}/${maxAttempts - 1}`, {
+        errorType: error?.name || 'Unknown',
+        errorMessage: error?.message || String(error),
+        delayMs: delay,
+        timestamp: new Date().toISOString(),
+      });
+      
+      // Wait before retrying
+      await sleep(delay);
     }
-  } catch (error) {
-    console.error("Error generating tailored resume:", error);
-    // Re-throw the error to be handled by the UI component
-    throw error;
   }
 };
 
@@ -336,26 +614,167 @@ export async function* refineResumeStream(profile: MasterProfile, markdownConten
     ---
   `;
 
-  try {
-    const stream = await ai.models.generateContentStream({
-      model: 'gemini-3-pro-preview',
-      contents: prompt,
-      config: {
-        thinkingConfig: {
-          includeThoughts: true,
-        }
-      }
-    });
+  const retryConfig = getRetryConfig();
+  let attempt = 0;
+  const maxAttempts = retryConfig.maxRetries! + 1; // Initial attempt + retries
 
-    for await (const chunk of stream) {
+  while (attempt < maxAttempts) {
+    // Track metrics for this attempt
+    const apiCallStartTime = Date.now();
+    let connectionTime: number | null = null;
+    let streamReadyTime: number | null = null;
+    let firstTokenReceived = false;
+    let firstTokenTime: number | null = null;
+    let streamEndTime: number | null = null;
+    let totalChunks = 0;
+
+    try {
+      // Check if user aborted before retry
       if (signal.aborted) {
         throw new DOMException("Aborted by user", "AbortError");
       }
-      yield chunk;
+
+      // Wrap stream creation with connection timeout
+      const streamCreationPromise = ai.models.generateContentStream({
+        model: GEMINI_CONFIG.model,
+        contents: prompt,
+        config: {
+          ...buildInferenceConfig(),
+          thinkingConfig: {
+            includeThoughts: true,
+          }
+        }
+      });
+
+      // Apply connection timeout to stream creation
+      const stream = await withTimeout(
+        streamCreationPromise,
+        TIMEOUT_CONFIG.connectionTimeout,
+        `Connection timeout for refineResumeStream after ${TIMEOUT_CONFIG.connectionTimeout}ms`
+      );
+
+      // Track connection time (time from API call to stream ready)
+      streamReadyTime = Date.now();
+      connectionTime = streamReadyTime - apiCallStartTime;
+
+      // Wrap stream with timeout monitoring
+      const monitoredStream = withStreamTimeout(
+        stream,
+        {
+          firstTokenTimeout: TIMEOUT_CONFIG.firstTokenTimeout,
+          heartbeatInterval: TIMEOUT_CONFIG.streamHeartbeatInterval,
+          onTimeout: () => {
+            // Structured logging for timeout events
+            console.warn('[TIMEOUT] Stream timeout: no first token received', {
+              operation: 'refineResumeStream',
+              timeoutMs: TIMEOUT_CONFIG.firstTokenTimeout,
+              connectionTimeMs: connectionTime,
+              timestamp: new Date().toISOString(),
+            });
+          },
+          onHeartbeatWarning: (timeSinceLastChunk) => {
+            // Structured logging for heartbeat warnings
+            console.warn('[HEARTBEAT] Stream heartbeat warning', {
+              operation: 'refineResumeStream',
+              timeSinceLastChunkMs: timeSinceLastChunk,
+              thresholdMs: TIMEOUT_CONFIG.streamHeartbeatInterval,
+              chunksReceived: totalChunks,
+              timestamp: new Date().toISOString(),
+            });
+          }
+        }
+      );
+      
+      for await (const chunk of monitoredStream) {
+        if (signal.aborted) {
+          throw new DOMException("Aborted by user", "AbortError");
+        }
+        
+        totalChunks++;
+        
+        if (!firstTokenReceived) {
+          firstTokenReceived = true;
+          firstTokenTime = Date.now();
+          
+          // Calculate all timing metrics
+          const timeToFirstTokenFromStream = firstTokenTime - streamReadyTime!;
+          const totalTimeToFirstToken = firstTokenTime - apiCallStartTime;
+          
+          // Structured logging for comprehensive metrics
+          console.log('[METRIC] Stream metrics', {
+            operation: 'refineResumeStream',
+            attempt: attempt + 1,
+            connectionTimeMs: connectionTime!,
+            timeToFirstTokenFromStreamMs: timeToFirstTokenFromStream,
+            totalTimeToFirstTokenMs: totalTimeToFirstToken,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        
+        yield chunk;
+      }
+      
+      // Track stream completion time
+      streamEndTime = Date.now();
+      const totalGenerationTime = streamEndTime - apiCallStartTime;
+      const streamDuration = streamEndTime - streamReadyTime!;
+      
+      // Log completion metrics
+      console.log('[METRIC] Stream completion', {
+        operation: 'refineResumeStream',
+        attempt: attempt + 1,
+        totalGenerationTimeMs: totalGenerationTime,
+        streamDurationMs: streamDuration,
+        totalChunks,
+        timestamp: new Date().toISOString(),
+      });
+      
+      // Success - exit retry loop
+      return;
+      
+    } catch (error: any) {
+      // Don't retry if user aborted
+      if (error.name === 'AbortError') {
+        throw error;
+      }
+
+      attempt++;
+      
+      // Check if error is retryable and we have attempts left
+      if (!isRetryableError(error) || attempt >= maxAttempts) {
+        // Enhanced error handling with user-friendly messages
+        const userMessage = getUserFriendlyErrorMessage(error, 'resume refinement');
+        
+        // Structured logging for final failures
+        console.error(`[ERROR] refineResumeStream - Final failure`, {
+          errorType: error instanceof TimeoutError ? 'TimeoutError' : error?.name || 'Unknown',
+          errorMessage: error?.message || String(error),
+          attempts: attempt,
+          timestamp: new Date().toISOString(),
+        });
+        
+        // Throw user-friendly error
+        throw new Error(userMessage);
+      }
+      
+      // Calculate backoff and wait before retrying
+      const delay = calculateBackoffDelay(
+        attempt - 1,
+        retryConfig.baseDelay!,
+        retryConfig.maxDelay!
+      );
+      
+      // Structured logging for retry attempts
+      console.warn(`[RETRY] refineResumeStream - Attempt ${attempt}/${maxAttempts - 1}`, {
+        errorType: error?.name || 'Unknown',
+        errorMessage: error?.message || String(error),
+        delayMs: delay,
+        timestamp: new Date().toISOString(),
+      });
+      
+      // Wait before retrying
+      await sleep(delay);
     }
-  } catch (error) {
-    console.error("Error refining resume:", error);
-    throw error;
   }
 };
 
@@ -385,26 +804,53 @@ export const generateFullProfile = async (documents: Document[]): Promise<Master
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            personal_info: getResponseSchemaForSection('personal_info'),
-            experience: getResponseSchemaForSection('experience'),
-            skills: getResponseSchemaForSection('skills'),
-            projects: getResponseSchemaForSection('projects'),
-            education: getResponseSchemaForSection('education'),
-            certifications: getResponseSchemaForSection('certifications'),
-            awards: getResponseSchemaForSection('awards'),
-            languages: getResponseSchemaForSection('languages'),
+    // Wrap API call with retry and timeout
+    // Use longer timeout for full profile generation (more complex)
+    const apiCall = async () => {
+      const response = await ai.models.generateContent({
+        model: GEMINI_CONFIG.model,
+        contents: prompt,
+        config: {
+          ...buildInferenceConfig(),
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              personal_info: getResponseSchemaForSection('personal_info'),
+              experience: getResponseSchemaForSection('experience'),
+              skills: getResponseSchemaForSection('skills'),
+              projects: getResponseSchemaForSection('projects'),
+              education: getResponseSchemaForSection('education'),
+              certifications: getResponseSchemaForSection('certifications'),
+              awards: getResponseSchemaForSection('awards'),
+              languages: getResponseSchemaForSection('languages'),
+            },
           },
         },
-      },
-    });
+      });
+      return response;
+    };
+
+    const retryConfig = getRetryConfig();
+    const response = await retryWithBackoff(
+      () => withTimeout(
+        apiCall(),
+        TIMEOUT_CONFIG.requestTimeout * 1.5, // 3 minutes for full profile
+        'generateFullProfile timeout'
+      ),
+      {
+        ...retryConfig,
+        onRetry: (attempt, error, delay) => {
+          // Structured logging for retry attempts
+          console.warn(`[RETRY] generateFullProfile - Attempt ${attempt}/${retryConfig.maxRetries}`, {
+            errorType: error?.name || 'Unknown',
+            errorMessage: error?.message || String(error),
+            delayMs: delay,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+    );
 
     let jsonText = response.text.trim();
     if (jsonText.startsWith('```json')) {
@@ -421,7 +867,17 @@ export const generateFullProfile = async (documents: Document[]): Promise<Master
 
     return JSON.parse(jsonText);
   } catch (error) {
-    console.error("Error generating full profile:", error);
-    throw error;
+    // Enhanced error handling with user-friendly messages
+    const userMessage = getUserFriendlyErrorMessage(error, 'full profile generation');
+    
+    // Structured logging for final failures
+    console.error(`[ERROR] generateFullProfile - Final failure`, {
+      errorType: error instanceof TimeoutError ? 'TimeoutError' : (error as any)?.name || 'Unknown',
+      errorMessage: (error as any)?.message || String(error),
+      timestamp: new Date().toISOString(),
+    });
+    
+    // Throw user-friendly error
+    throw new Error(userMessage);
   }
 };

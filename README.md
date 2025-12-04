@@ -51,10 +51,26 @@ Follow these instructions to set up and run the project locally.
     Create a `.env` file in the root of the project and add the following variables. You can get these from your Supabase project settings and Google AI Studio.
 
     ```env
+    # Required
     VITE_SUPABASE_URL="YOUR_SUPABASE_PROJECT_URL"
     VITE_SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_KEY"
     GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+    
+    # Optional: Gemini Retry Configuration
+    # Default: 4 retries, 1 second base delay, 30 second max delay
+    GEMINI_MAX_RETRIES=4
+    GEMINI_BASE_DELAY=1000
+    GEMINI_MAX_DELAY=30000
+    
+    # Optional: Gemini Timeout Configuration
+    # Default: 15s connection, 120s request, 45s first token, 10s heartbeat
+    GEMINI_CONNECTION_TIMEOUT=15000
+    GEMINI_REQUEST_TIMEOUT=120000
+    GEMINI_FIRST_TOKEN_TIMEOUT=45000
+    GEMINI_STREAM_HEARTBEAT_INTERVAL=10000
     ```
+    
+    **Note**: All Gemini configuration variables are optional and have sensible defaults. Only set them if you need to customize the retry or timeout behavior.
 
 4.  **Set up Supabase database:**
     You will need to run the SQL schema to set up the necessary tables in your Supabase project. The schema can be found in `supabase/schema.sql`.
